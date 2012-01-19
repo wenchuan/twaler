@@ -1,0 +1,34 @@
+#---twaler parameters---
+dir_seedsdone= seedsdone
+dir_seeds= seeds
+dir_log = log
+dir_cache = cache
+db_server = localhost
+db_database = twaler
+db_username = snorgadmin
+db_password = snorg321
+verbose = 1
+
+#---crawl parameters---
+crawl_numOfThreads = 10
+
+#---process parameters---
+process_userinfo = 1
+process_tweets = 1
+process_friends = 1
+process_memberships = 1
+process_listmembers = 1
+extract_mentions = 1
+extract_urls = 1
+extract_hashes = 1
+
+#---generate seeds parameters---
+seed_userinfo = 1
+seed_tweets= 1
+seed_friends= 1
+seed_listmemberships= 1
+seed_lists= 1
+seed_per_file = 5
+seed_limit = 10
+update_limit = 0
+list_limit = 10
