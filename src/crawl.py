@@ -25,12 +25,12 @@ class crawler:
   def __init__(self, seed_file, dir_log, dir_cache, crawl_numOfThreads, verbose, **kwargs):
     if not os.path.exists(dir_cache):
       os.makedirs(dir_cache)
-      
+
     self.name = "Crawler"
-    self.seed_file = seed_file 
+    self.seed_file = seed_file
     self.dir_cache = dir_cache
     self.logger = logger(self.name,dir_log) #create log object
-    if verbose: 
+    if verbose:
       self.log = self.logger.verbose_log
     else:
       self.log = self.logger.log
@@ -38,9 +38,9 @@ class crawler:
     self.idqueue = queue.Queue(0)
     self.numOfThreads = crawl_numOfThreads
     #self.recovery_file = recovery_file
-    
+
     self.logger.log("requests starting at %d" % crawlerWorker.getRequestQuota(self))
-  
+
   """Crawl and Watch: Two hackish functions to circumvent python's multi-thread termination signal problem"""
   def crawl(self):
     #create a child thread
@@ -51,7 +51,7 @@ class crawler:
     #make the parent thread wait for interrupt signals
     else:
       self.watch()
-  
+
   def watch(self):
     try:
       os.wait()
@@ -60,8 +60,8 @@ class crawler:
       self.log("Keyboard Interrupt Received")
       os.kill(self.child, signal.SIGKILL)
       #further recovery methods
-    sys.exit() 
-  
+    sys.exit()
+
   """Main crawl loop"""
   def crawloop(self):
     #set up crawl worker threads
@@ -70,29 +70,29 @@ class crawler:
       worker = crawlerWorker(self.idqueue, self.logger, self.dir_cache,self.verbose)
       worker.setName("Worker " + str(i))
       self.workers.append(worker)
-      worker.start() 
-          
+      worker.start()
+
     #read seed file and crawl
     try:
       seedFileStream = open(os.path.join(self.seed_file),"r")
       self.log("Crawling " + self.seed_file)
-    
+
       #read each line and put on queue for the worker threads
       while True:
         line = seedFileStream.readline()
         if not line:
           break
-        seed = line.strip()  
+        seed = line.strip()
         self.idqueue.put(seed)
-          
+
       #After all lines in the file are read, block until all items in the queue are completed
       self.idqueue.join()
       self.log("File " + self.seed_file + " completed")
       seedFileStream.close()
-      
+
     except Exception as e:
       self.log(str(e))
-      
+
     #send terminating signals
     for th in self.workers:
       self.idqueue.put(crawlerWorker.TERMINATE_SIGNAL)
@@ -102,22 +102,22 @@ class crawler:
     #Complete crawling!
     self.log("Exited Successfully")
     self.logger.__del__() #the logger isn't working as expected...
-          
+
 class crawlerWorker(threading.Thread):
-  """ crawlerWorker: Worker thread that downloads and stores the crawled information""" 
+  """ crawlerWorker: Worker thread that downloads and stores the crawled information"""
   workerLock = threading.Lock()
-  
+
   CRAWL_USERINFO = "u"
   CRAWL_TWEETS = "t"
   CRAWL_FRIENDS = "f"
   CRAWL_LISTMEMBERSHIPS = "l"
   CRAWL_MEMBERS = "m"
   TERMINATE_SIGNAL = "TERMINATE"
-  
+
   def __init__(self, idqueue, logger ,cachedir, verbose, **kwargs):
     threading.Thread.__init__(self)
     self.logger = logger
-    if verbose: 
+    if verbose:
       self.log = self.verboseLog
     else:
       self.log = self.silentLog
@@ -127,12 +127,12 @@ class crawlerWorker(threading.Thread):
     self.password = "snorg321"
     self.pseudoseconds = 0
     self.idqueue = idqueue
-    
+
   """---Connection Methods---"""
 
   def getrawheaders(self,page):
     return "\r\n".join([(i + ": " + j) for i,j in page.getheaders()])
-  
+
   def getconnection(self):
     try:
       if (self.twitter_connection):
@@ -142,13 +142,13 @@ class crawlerWorker(threading.Thread):
     self.twitter_connection = http.client.HTTPConnection("twitter.com:80")
     self.twitter_connection.connect()
     return self.twitter_connection
-      
+
   def packauth(self, username,password):
     userpass = "%s:%s" % (username, password)
     base64string = base64.encodebytes(userpass.encode('utf8'))[:-1]
     auth = "Basic %s" % base64string.decode('utf8')
     return auth
-  
+
   def gethttpresponse_auth(self, url, username=None, password=None, datagzipped=False):
     tries = 0
     response = None
@@ -188,7 +188,7 @@ class crawlerWorker(threading.Thread):
               break
             self.log("400, request quota: %d. sleeping for 10 more minutes and checking again" % quota);
             time.sleep(10 * 60)
-        else:  
+        else:
           self.log("response code %d, sleeping and retrying"%response.code)
           time.sleep (2)
           self.twitter_connection = None
@@ -255,7 +255,7 @@ class crawlerWorker(threading.Thread):
         time.sleep (7)
         self.twitter_connection = None
     return response
-  
+
   def getRequestQuota(self, username=None, password=None):
     """Return the number of requests we have left"""
     url_rateLimit = "http://twitter.com/account/rate_limit_status.xml"
@@ -273,20 +273,20 @@ class crawlerWorker(threading.Thread):
           data = page.read()
           requota = str(data).split('<remaining-hits type=\"integer\">')[1].split("</remaining-hits>")[0]
           return int(requota)
-        #Request returned a bad code  
+        #Request returned a bad code
         else:
           self.log("rate limit status request returned: %d" % page.code);
       #Request caused an exception
       except urllib.error.HTTPError as e:
         self.log("rate limit request failed. with error %d" % (e.code))
-      except urllib.error.URLError as e:  
+      except urllib.error.URLError as e:
         self.log("rate limit request failed. with error %s" % (e.reason))
       self.log("something went wrong, sleeping for a minute: count:%d" % count)
       time.sleep(60)
     return(0)
-  
+
   """---File IO Methods---"""
-  
+
   def store_in_cache(self, request_type, uid, header, data, listname = None, datagzipped=False):
     self.cache_accessor.store_in_cache(request_type, uid, header, data, listname, datagzipped)
 
@@ -300,11 +300,11 @@ class crawlerWorker(threading.Thread):
         break
       self.log("%s Request Quota is %d, sleeping for another 15 minutes" % (timefunctions.datestamp(), rq))
       time.sleep(60 * 15)
-      
+
     #parse the seed line
     seed = seed.split("\t")
-    #For valid seed format, see Seedfile format in: http://wiki.cs.ucla.edu/twaler#crawl.py 
-    #case A: type unspecified on line, assumed to be just an user_id 
+    #For valid seed format, see Seedfile format in: http://wiki.cs.ucla.edu/twaler#crawl.py
+    #case A: type unspecified on line, assumed to be just an user_id
     if len(seed) < 2:
       type = '*'
       data = seed[0]
@@ -315,19 +315,19 @@ class crawlerWorker(threading.Thread):
     #check for extra column separated by space
     fields = data.split(" ")
     uid = fields[0].strip()
-    sid = None 
+    sid = None
     #case C: extra column used to specify cursor or list_id
     if len(fields) > 1:
       sid = fields[1].strip()
-    
-    #perform the fetch  
+
+    #perform the fetch
     for ch in type:
       if (ch == crawlerWorker.CRAWL_USERINFO):
         self.fetch_userinfo(uid)
       elif (ch == crawlerWorker.CRAWL_FRIENDS):
         self.fetch_friends(uid)
       elif (ch == crawlerWorker.CRAWL_TWEETS):
-        self.fetch_tweets(uid, sid)  
+        self.fetch_tweets(uid, sid)
       elif (ch == crawlerWorker.CRAWL_LISTMEMBERSHIPS):
         self.fetch_listmemberships(uid)
       #crawling lists require userid, and listid
@@ -338,11 +338,11 @@ class crawlerWorker(threading.Thread):
         uid = data.strip()
         self.fetch_userinfo(uid)
         self.fetch_friends(uid)
-        self.fetch_tweets(uid, sid) 
+        self.fetch_tweets(uid, sid)
         self.fetch_listmemberships(uid)
       else:
         self.log("Type " +type+ " unrecognized for " + data)
-        
+
   def fetch_userinfo(self,uid):
     """reads first page of friends (people uid follows), tries 5 times if it fails with a 5xx error
        and finally reads next page if one is available
@@ -364,7 +364,7 @@ class crawlerWorker(threading.Thread):
     else:
       self.log("uid `%s` failed in fetch_userinfo. HTTP code: %s" % (uid, page.code))
       return page.code
-    
+
   def fetch_friends(self,uid):
     """reads first page of friends (people uid follows), tries 5 times if it fails with a 5xx error
        and finally reads next page if one is available
@@ -500,7 +500,7 @@ class crawlerWorker(threading.Thread):
     if cursor:
       last_crawled = cursor
     else:
-      last_crawled = "-1" 
+      last_crawled = "-1"
     #form URL
     url_tweets = "http://twitter.com/statuses/user_timeline.rss?user_id=%s&since_id=%s&count=200" % (uid, last_crawled)
     page = self.gethttpresponse(url_tweets,True)
@@ -513,67 +513,67 @@ class crawlerWorker(threading.Thread):
         headers = self.getrawheaders(page)
         data = page.read()
         self.store_in_cache("tweets.rss", uid, str(headers), data, datagzipped=datagzipped)
-        
+
         #Get updated request quota information
         self.reqsleft = int(page.getheader("X-RateLimit-Remaining"))
         #the problem with this is that clocks may be out of sync
         #rate_limit_reset = page.getheader("X-RateLimit-Reset")
-        
+
       else:
         self.log("uid `%s` failed in fetch_tweets. HTTP code: %s" % (uid, page.code))
       return page.code
     return 666
-  
+
   """Log Functions for threads"""
   def silentLog(self, errmsg):
     crawlerWorker.workerLock.acquire()
     msg = "[" + self.name + "] %s: %s" % (timefunctions.datestamp(), errmsg)
     self.logger.errorlog.write(msg + "\n")
     crawlerWorker.workerLock.release()
-  
+
   def verboseLog(self, errmsg):
     crawlerWorker.workerLock.acquire()
     msg = "[" + self.name + "] %s: %s" % (timefunctions.datestamp(), errmsg)
     print(msg)
     self.logger.errorlog.write(msg + "\n")
     crawlerWorker.workerLock.release()
-    
+
   def run(self):
     #repeatedly, get seed from queue and crawl until terminating signal encountered
     while True:
-      try: 
+      try:
         seed = self.idqueue.get() #blocking get
-        
-        if (seed == crawlerWorker.TERMINATE_SIGNAL): 
+
+        if (seed == crawlerWorker.TERMINATE_SIGNAL):
           break
         #check for comments
         if seed[0] == "#":
           self.idqueue.task_done()
           continue
-        
+
         self.log("fetching \"%s\"" % seed)
         self.fetch(seed)
         self.idqueue.task_done()
-                
+
       except Exception as e:
         self.log(str(e))
         self.idqueue.task_done()
         break
-        
+
     self.log("terminate signal received, closing thread")
 
 def usage():
     print("""\nUsage: %s [manual parameters] <config file>\n
 Contents in configuration file:
 *Values listed here are default values, used if parameter is unspecified
-*Can also be overwritten with parameters 
+*Can also be overwritten with parameters
 *ie) %s --seed_file=seedfile.txt config.txt
 
 seed_file=seedfile.txt\t[seed file]
 dir_log= log\t[disk location to write logs to]
 dir_cache= cache\t[disk location of crawl results]
 crawl_numOfThreads= 10\t[number of threads used for downloading]
-verbose = 1        
+verbose = 1
         """ % (sys.argv[0],sys.argv[0]))
 
 if __name__ == '__main__':
