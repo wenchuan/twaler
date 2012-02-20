@@ -4,16 +4,18 @@ import shutil
 import sys
 import signal
 import multiprocessing
+
 import crawl
 import process_crawl
 import load_crawl
 import generate_seeds
+import misc
 
-from config import parse_arguments
-from config import timefunctions
-from config import logger
+# from config import parse_arguments
+# from config import timefunctions
+# from config import logger
 
-class twaler:
+class Twaler:
   def __init__(self,dir_cache,dir_log,dir_seeds,dir_seedsdone,**kwargs):
     self.name = "twaler"
     self.configurations = kwargs
@@ -59,8 +61,8 @@ class twaler:
 
     #CRAWL the given instance
     self.log("Crawling " + seed_file)
-    crawler = crawl.crawler(**self.configurations)
-    crawler.crawloop()
+    crawler = crawl.Crawler(**self.configurations)
+    crawler.crawlloop()
 
   def processAndLoad(self,crawl_instance):
     #a folder under cache will be created with the datestamp as the crawl_instance
@@ -131,7 +133,7 @@ dir_log= log
 verbose = 0
 
 #---crawl---#
-crawl_numOfThreads= 10
+crawl_num_of_threads= 10
 
 #---process_crawl---#
 process_userinfo= 1
@@ -165,8 +167,8 @@ if __name__ == '__main__':
   parameters = {"dir_cache":"cache","dir_log":"log", "dir_seeds":"seeds","dir_seedsdone":"seedsdone", "verbose":0}
   int_params = ["verbose"]
   #parameters from crawl
-  parameters.update({"seed_file":"<in dir_seeds>","crawl_numOfThreads":10})
-  int_params.extend(["crawl_numOfThreads"])
+  parameters.update({"seed_file":"<in dir_seeds>","crawl_num_of_threads":10})
+  int_params.extend(["crawl_num_of_threads"])
   #parameters from process_crawl
   parameters.update({"process_to_db":0,"dir_processed":"<in cache instance folders>","process_userinfo":1,"process_friends":1,"process_memberships":1,"process_tweets":1,"process_listmembers":1,"extract_mentions":1,"extract_urls":1,"extract_hashes":1})
   int_params.extend(["process_userinfo","process_friends","process_memberships",  "process_tweets","process_listmembers","extract_mentions","extract_urls","extract_hashes"])
@@ -177,5 +179,5 @@ if __name__ == '__main__':
   int_params.extend(["seed_userinfo","seed_tweets","seed_friends","seed_listmemberships","seed_lists","seed_per_file","seed_limit","update_limit","list_limit"])
 
   conf = parse_arguments(usage,parameters,int_params);
-  t = twaler(**conf)
+  t = Twaler(**conf)
   t.twale()

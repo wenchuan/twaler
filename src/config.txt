@@ -10,7 +10,7 @@ db_password = snorg321
 verbose = 1
 
 #---crawl parameters---
-crawl_numOfThreads = 10
+crawl_num_of_threads = 2
 
 #---process parameters---
 process_userinfo = 1

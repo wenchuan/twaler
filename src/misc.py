@@ -11,7 +11,7 @@ import mysql.connector
 
 from contextlib import closing
 
-class logger:
+class Logger:
   def __init__(self,name,dir_log):
     self.name = name
     if not os.path.exists(dir_log):
@@ -60,7 +60,7 @@ class timefunctions:
     t = time.gmtime(float(dtstr))
     return time.strftime("%Y-%m-%d %H:%M:%S",t)
 
-class cache_accessor():
+class CacheAccessor():
   def __init__(self, cache_dir, log):
     self.cache_dir = cache_dir
     self.pseudoseconds = 0
@@ -212,14 +212,14 @@ class file_db():
   def execute(self,stmt):
     return None
 
-"""Parses the parameters from the config.txt file and manual override parameters"""
 def parse_arguments(usage, parameters, int_params):
-  """
-  usage: displays usage information
-  parameters: the parameters of the component mapped with its default values
-  int_params: the parameters that are of integer/binary type
+  """Parses parameters from config.txt and manually override parameters
+    usage: displays usage information
+    parameters: the parameters of the component mapped with its default values
+    int_params: the parameters that are of integer/binary type
 
-  RETURNS a map of parameters along with their values
+    RETURNS a map of parameters along with their values
+
   """
   manual_parameters = []
   for p in parameters:
