@@ -11,116 +11,123 @@ import load_crawl
 import generate_seeds
 import misc
 
-# from config import parse_arguments
-# from config import timefunctions
-# from config import logger
+from misc import parse_arguments
 
 class Twaler:
-  def __init__(self,dir_cache,dir_log,dir_seeds,dir_seedsdone,**kwargs):
-    self.name = "twaler"
-    self.configurations = kwargs
-    self.dir_seeds = dir_seeds
-    self.dir_seedsdone = dir_seedsdone
-    if not os.path.exists(dir_seedsdone):
-        os.makedirs(dir_seedsdone)
-    self.dir_cache = dir_cache
-    if not os.path.exists(dir_cache):
-        os.makedirs(dir_cache)
-    self.dir_log = dir_log
-    if kwargs['verbose']:
-      self.log = logger(self.name,dir_log).verbose_log
-    else:
-      self.log = logger(self.name,dir_log).log
+    # TODO fix all these parameter passing diaster
+    def __init__(self, dir_cache, dir_log, dir_seeds, dir_seedsdone,
+                 **kwargs):
+        """create directory for cache and log if not already"""
+        self.name = "twaler"
+        self.configurations = kwargs
+        self.dir_seeds = dir_seeds
+        self.dir_seedsdone = dir_seedsdone
+        if not os.path.exists(dir_seedsdone):
+            os.makedirs(dir_seedsdone)
+        self.dir_cache = dir_cache
+        if not os.path.exists(dir_cache):
+            os.makedirs(dir_cache)
+        self.dir_log = dir_log
+        if kwargs['verbose']:
+            self.log = misc.Logger(self.name, dir_log).verbose_log
+        else:
+            self.log = misc.Logger(self.name, dir_log).log
 
-  def twale(self):
-    #create a child process
-    self.child = os.fork()
-    if self.child == 0:
-      self.twalerloop()
-    #make the parent thread wait for interrupt signals
-    else:
-      self.watch()
+    def twale(self):
+        self.child = os.fork()              # create a child process
+        if self.child == 0:
+            self.twalerloop()               # child works, father watches
+        else:
+            self.watch()
 
-  def watch(self):
-    try:
-      os.wait()
-    except (KeyboardInterrupt, SystemExit):
-      #if keyboard interrupt is received
-      self.log("Keyboard Interrupt Received")
-      os.kill(self.child, signal.SIGKILL)
-    sys.exit()
+    def watch(self):
+        try:
+            os.wait()
+        except (KeyboardInterrupt, SystemExit):
+            self.log("Keyboard Interrupt Received")
+            os.kill(self.child, signal.SIGKILL)
+        sys.exit()
 
-  def crawl(self,crawl_instance,seed_file):
-    #set new parameters for crawling
-    #a folder under cache will be created with the datestamp as the crawl_instance
-    seedFileCacheDir = os.path.join(self.dir_cache,crawl_instance)
-    self.configurations["seed_file"] = os.path.join(self.dir_seeds,seed_file)
-    self.configurations["dir_cache"] = seedFileCacheDir
-    self.configurations["instance"] = crawl_instance
-    self.configurations["dir_log"] = os.path.join(seedFileCacheDir,"log")
+    def twalerloop(self):
+        # Loop forever unless interrupted by user
+        while True:
+            # Check for seeds
+            seeds = os.listdir(self.dir_seeds)
+            # Generate more if needed
+            if not seeds:
+                self.log("Seed Folder Empty")
+                self.generateseeds()
+                self.log("Generate seeds complete")
+                seeds = os.listdir(self.dir_seeds)
+            processes = []
+            for seed in seeds:              # N.B. seed is a file with seeds
+                timestamp = misc.timefunctions.datestamp()
+                # Crawl
+                self.crawl(timestamp, seed)
+                # FIXME: this is awful lot of processes
+                """
+                do we really need this ?????
+                is process And Load really that hard to do? it takes an entire
+                thread to complete it?
+                Why not just use thread queue???
 
-    #CRAWL the given instance
-    self.log("Crawling " + seed_file)
-    crawler = crawl.Crawler(**self.configurations)
-    crawler.crawlloop()
+                """
+                # Process and Load with multiple threads
+                p = multiprocessing.Process(target=self.processAndLoad,
+                                            args=(timestamp,))
+                processes.append(p)
+                p.start()
+                # Move seedfile out of seed directory
+                seedpath = os.path.join(self.dir_seeds, seed)
+                cachepath = os.path.join(self.dir_cache, timestamp,
+                                         "seed["+seed+"].txt")
+                seeddonepath = os.path.join(self.dir_seedsdone, seed)
+                shutil.copy(seedpath, cachepath)
+                shutil.move(seedpath, seeddonepath)
+            # Wait for this round to finish
+            for p in processes:
+                p.join()
 
-  def processAndLoad(self,crawl_instance):
-    #a folder under cache will be created with the datestamp as the crawl_instance
-    seedFileCacheDir = os.path.join(self.dir_cache,crawl_instance)
-    self.configurations["dir_cache"] = seedFileCacheDir
-    self.configurations["instance"] = crawl_instance
-    self.configurations["dir_log"] = os.path.join(seedFileCacheDir,"log")
-    self.configurations["dir_processed"] = os.path.join(seedFileCacheDir,"processed_crawl")
+    def generateseeds(self):
+        self.configurations["instance"] = misc.timefunctions.datestamp()
+        self.configurations["dir_seeds"] = self.dir_seeds
+        self.configurations["dir_log"] = self.dir_log
+        generator = generate_seeds.generate_seeds(**self.configurations)
+        generator.generate()
 
-    #PROCESS the given instance
-    self.log("Processing instance " + crawl_instance)
-    processor = process_crawl.process_crawl(**self.configurations)
-    processor.process_loop()
+    def crawl(self, timestamp, seed):
+        # Set new parameters for crawling
+        # A folder under cache will be created with the timestamp
+        seed_cache_dir = os.path.join(self.dir_cache, timestamp)
+        self.configurations["seed_file"] = os.path.join(self.dir_seeds, seed)
+        self.configurations["dir_cache"] = seed_cache_dir
+        self.configurations["instance"] = timestamp
+        self.configurations["dir_log"] = os.path.join(seed_cache_dir, "log")
+        #CRAWL the given instance
+        self.log("Crawling " + seed)
+        crawler = crawl.Crawler(**self.configurations)
+        crawler.crawlloop()
 
-    #LOAD the given instance
-    self.log("Loading instance " + crawl_instance)
-    loader = load_crawl.load_crawl(**self.configurations)
-    loader.load_loop()
+    def processAndLoad(self, timestamp):
+        # A folder under cache will be created with the timestamp
+        cache_dir = os.path.join(self.dir_cache, timestamp)
+        self.configurations["dir_cache"] = cache_dir
+        self.configurations["instance"] = timestamp
+        self.configurations["dir_log"] = os.path.join(cache_dir, "log")
+        self.configurations["dir_processed"] = (
+                os.path.join(cache_dir, "processed_crawl"))
+        # PROCESS
+        self.log("Processing instance " + timestamp)
+        processor = process_crawl.process_crawl(**self.configurations)
+        processor.process_loop()
+        # LOAD
+        self.log("Loading instance " + timestamp)
+        loader = load_crawl.load_crawl(**self.configurations)
+        loader.load_loop()
 
-  def generateSeeds(self):
-    self.configurations["instance"] = timefunctions.datestamp()
-    self.configurations["dir_seeds"] = self.dir_seeds
-    self.configurations["dir_log"] = self.dir_log
-
-    generator = generate_seeds.generate_seeds(**self.configurations)
-    generator.generate()
-
-
-  def twalerloop(self):
-    while True:
-      #CHECK FOR SEEDS
-      seedFiles = os.listdir(self.dir_seeds)
-
-      #GENERATE SEEDS (if no more seeds)
-      if not(seedFiles):
-        self.log("Seed Folder Empty")
-        self.generateSeeds()
-        self.log("Generate seeds complete")
-
-      processAndLoadProcesses = []
-      for seed_file in seedFiles:
-        crawl_instance = timefunctions.datestamp()
-        #CRAWL (continuously)
-        self.crawl(crawl_instance,seed_file)
-        #PROCESS AND LOAD (generate subprocess)
-        p = multiprocessing.Process(target=self.processAndLoad, args=(crawl_instance,))
-        processAndLoadProcesses.append(p)
-        p.start()
-        #Move the seed file into seeds_done, and also the crawl instance folder
-        shutil.copy(os.path.join(self.dir_seeds,seed_file), os.path.join(os.path.join(self.dir_cache,crawl_instance),"seed["+seed_file+"].txt"))
-        shutil.move(os.path.join(self.dir_seeds,seed_file), os.path.join(self.dir_seedsdone,seed_file))
-
-      #wait for this round to finish
-      for p in processAndLoadProcesses:
-        p.join()
 
 def usage():
-  print("""\nUsage: %s [manual parameters] <config file>\n
+    print("""\nUsage: %s [manual parameters] <config file>\n
 Contents in configuration file:
 *Values listed here are default values, used if parameter is unspecified
 *Can also be overwritten with parameters
@@ -164,20 +171,20 @@ list_limit = 100
         """ % (sys.argv[0],sys.argv[0]))
 
 if __name__ == '__main__':
-  parameters = {"dir_cache":"cache","dir_log":"log", "dir_seeds":"seeds","dir_seedsdone":"seedsdone", "verbose":0}
-  int_params = ["verbose"]
-  #parameters from crawl
-  parameters.update({"seed_file":"<in dir_seeds>","crawl_num_of_threads":10})
-  int_params.extend(["crawl_num_of_threads"])
-  #parameters from process_crawl
-  parameters.update({"process_to_db":0,"dir_processed":"<in cache instance folders>","process_userinfo":1,"process_friends":1,"process_memberships":1,"process_tweets":1,"process_listmembers":1,"extract_mentions":1,"extract_urls":1,"extract_hashes":1})
-  int_params.extend(["process_userinfo","process_friends","process_memberships",  "process_tweets","process_listmembers","extract_mentions","extract_urls","extract_hashes"])
-  #parameters from load_crawl
-  parameters.update({"db_server":"localhost","db_database":"twaler","db_username":"snorgadmin","db_password":"snorg321"})
-  #parameters from generate_seeds
-  parameters.update({"seed_userinfo":1,"seed_tweets":1,"seed_friends":1,"seed_listmemberships":1,"seed_lists":1,"seed_per_file":200,"seed_limit":2000,"update_limit":2000,"list_limit":100})
-  int_params.extend(["seed_userinfo","seed_tweets","seed_friends","seed_listmemberships","seed_lists","seed_per_file","seed_limit","update_limit","list_limit"])
+    parameters = {"dir_cache":"cache","dir_log":"log", "dir_seeds":"seeds","dir_seedsdone":"seedsdone", "verbose":0}
+    int_params = ["verbose"]
+    #parameters from crawl
+    parameters.update({"seed_file":"<in dir_seeds>","crawl_num_of_threads":10})
+    int_params.extend(["crawl_num_of_threads"])
+    #parameters from process_crawl
+    parameters.update({"process_to_db":0,"dir_processed":"<in cache instance folders>","process_userinfo":1,"process_friends":1,"process_memberships":1,"process_tweets":1,"process_listmembers":1,"extract_mentions":1,"extract_urls":1,"extract_hashes":1})
+    int_params.extend(["process_userinfo","process_friends","process_memberships",  "process_tweets","process_listmembers","extract_mentions","extract_urls","extract_hashes"])
+    #parameters from load_crawl
+    parameters.update({"db_server":"localhost","db_database":"twaler","db_username":"snorgadmin","db_password":"snorg321"})
+    #parameters from generate_seeds
+    parameters.update({"seed_userinfo":1,"seed_tweets":1,"seed_friends":1,"seed_listmemberships":1,"seed_lists":1,"seed_per_file":200,"seed_limit":2000,"update_limit":2000,"list_limit":100})
+    int_params.extend(["seed_userinfo","seed_tweets","seed_friends","seed_listmemberships","seed_lists","seed_per_file","seed_limit","update_limit","list_limit"])
 
-  conf = parse_arguments(usage,parameters,int_params);
-  t = Twaler(**conf)
-  t.twale()
+    conf = parse_arguments(usage,parameters,int_params);
+    t = Twaler(**conf)
+    t.twale()

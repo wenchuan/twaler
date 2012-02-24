@@ -2,8 +2,8 @@
 import sys
 import os
 
-from config import parse_arguments
-from config import logger
+from misc import parse_arguments
+from misc import Logger
 
 
 class load_crawl():

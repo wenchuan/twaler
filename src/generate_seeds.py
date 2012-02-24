@@ -3,10 +3,10 @@
 import os
 import sys
 
-from config import parse_arguments
-from config import timefunctions
-from config import mysql_db
-from config import logger
+from misc import parse_arguments
+from misc import timefunctions
+from misc import mysql_db
+from misc import Logger
 
 class generate_seeds():
   def __init__(self,instance,dir_log,dir_seeds,db_username, db_password, db_database, db_server, seed_userinfo,seed_tweets,seed_friends,seed_listmemberships,seed_lists,seed_per_file,seed_limit,update_limit,list_limit,verbose,**kwargs):
@@ -16,9 +16,9 @@ class generate_seeds():
       if not os.path.exists(dir_seeds):
         os.makedirs(dir_seeds)
       if verbose:
-        self.log = logger(self.name,dir_log).verbose_log
+        self.log = Logger(self.name,dir_log).verbose_log
       else:
-        self.log = logger(self.name,dir_log).log
+        self.log = Logger(self.name,dir_log).log
       self.instance = instance
       self.instanceTimeStamp = timefunctions.instanceToSqlTime(instance)
       self.mysql_db = mysql_db(db_server,db_username,db_password,db_database,self.log)

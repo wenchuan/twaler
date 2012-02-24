@@ -104,11 +104,10 @@ class _CrawlerWorker(threading.Thread):
 
     def __init__(self, idqueue, logger, cachedir, verbose, **kwargs):
         threading.Thread.__init__(self)
-        self.logger = logger
         if verbose:
-            self.log = self.verbose_log
+            self.log = logger.verbose_log
         else:
-            self.log = self.silent_log
+            self.log = logger.silent_log
         self.cache_accessor = misc.CacheAccessor(cachedir, self.log)
         # Twitter username and password is required for some requests
         self.username = "snorguser"
@@ -345,21 +344,6 @@ class _CrawlerWorker(threading.Thread):
             return page.code
         return 666
 
-    def silent_log(self, mesg):
-        _CrawlerWorker.workerLock.acquire()
-        msg = "[%s] %s: %s" % (self.name, misc.timefunctions.datestamp(),
-                               mesg)
-        self.logger.errorlog.write(msg + "\n")
-        _CrawlerWorker.workerLock.release()
-
-    def verbose_log(self, mesg):
-        _CrawlerWorker.workerLock.acquire()
-        msg = "[%s] %s: %s" % (self.name, misc.timefunctions.datestamp(),
-                               mesg)
-        print(msg)
-        self.logger.errorlog.write(msg + "\n")
-        _CrawlerWorker.workerLock.release()
-
     def run(self):
         # get seed from queue and crawl until terminating signal encountered
         while True:
@@ -399,7 +383,7 @@ def main(argv=None):
     crawler.crawl()
 
 if __name__ == '__main__':
-  #the parameters and their default values
+    #the parameters and their default values
     parameters = {"seed_file":"seedfile.txt", "dir_log":"log", "dir_cache":"cache", "crawl_num_of_threads":10,"verbose":1}
     int_params = ["crawl_num_of_threads","verbose"]
     conf = misc.parse_arguments(usage, parameters, int_params)

@@ -6,12 +6,12 @@ import gzip
 import xml.dom.minidom
 from contextlib import closing
 
-from config import parse_arguments
-from config import timefunctions
-from config import logger
-from config import cache_accessor
-from config import mysql_db
-from config import file_db
+from misc import parse_arguments
+from misc import timefunctions
+from misc import Logger
+from misc import CacheAccessor
+from misc import mysql_db
+from misc import file_db
 
 """Functions for XML DOM parsing"""
 def gettext(node):
