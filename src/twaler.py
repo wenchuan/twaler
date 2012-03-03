@@ -62,6 +62,7 @@ class Twaler:
             processes = []
             for seed in seeds:              # N.B. seed is a file with seeds
                 timestamp = misc.timefunctions.datestamp()
+                import code;
                 # Crawl
                 self.crawl(timestamp, seed)
                 # FIXME: this is awful lot of processes
@@ -118,11 +119,11 @@ class Twaler:
                 os.path.join(cache_dir, "processed_crawl"))
         # PROCESS
         self.log("Processing instance " + timestamp)
-        processor = process_crawl.process_crawl(**self.configurations)
+        processor = process_crawl.Process_crawl(**self.configurations)
         processor.process_loop()
         # LOAD
         self.log("Loading instance " + timestamp)
-        loader = load_crawl.load_crawl(**self.configurations)
+        loader = load_crawl.Load_crawl(**self.configurations)
         loader.load_loop()
 
 

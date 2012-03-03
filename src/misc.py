@@ -19,7 +19,7 @@ class Logger:
             os.makedirs(dir_log)
         logname = "%s.%s.error.log" % (self.name, timefunctions.datestamp())
         logpath = os.path.join(dir_log, logname)
-        self.errorlog = open(logpath)
+        self.errorlog = open(logpath, 'w')
 
     def log(self, msg):
         msg = "[%s] %s: %s" % (self.name, timefunctions.datestamp(), msg)
@@ -75,7 +75,7 @@ class CacheAccessor():
 
     def get_crawl_dir(self, basepath, uid, create=False, listname=None):
         """
-        Return, and if needed create, the path associated with this user id.
+        Return and create (if needed), the path associated with this user id
         """
         cache_path = os.path.join(basepath, uid[-1], uid[-2], uid[-3], uid)
         if listname:
@@ -86,7 +86,7 @@ class CacheAccessor():
 
     def get_cache_dir(self, uid, create=False, listname=None):
         """
-        Return, and if needed create, the path associated with this user id.
+        Return and create (if needed), the path associated with this user id
         """
         return self.get_crawl_dir(self.cache_dir, uid, create=create,
                                   listname=listname)
@@ -185,8 +185,8 @@ class mysql_db():
         except Exception as e:
             self.log("MySQL Execute Error:" + str(e) + "\n(stmt):" + stmt)
 
-    def fetchall(self, stmt):
-        return
+    def __del__(self):
+        self.conn.close()
 
 
 class file_db():
@@ -203,7 +203,7 @@ class file_db():
 
     def insert(self, table, values, updates=None):
         try:
-            if not(table in self.fileStream):
+            if table not in self.fileStream:
                 self.fileStream[table] = open(os.path.join(self.dir_file, table+".tsv"), "w")
             print(*values, sep='\t', end='\n', file=self.fileStream[table])
         except Exception as e:
@@ -217,7 +217,7 @@ class file_db():
         return None
 
 
-# This needs to be purged
+# This garbage needs to be purged
 def parse_arguments(usage, parameters, int_params):
     """Parses parameters from config.txt and manually override parameters
     usage: displays usage information

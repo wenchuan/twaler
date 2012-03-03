@@ -6,13 +6,13 @@ from misc import parse_arguments
 from misc import Logger
 
 
-class load_crawl():
+class Load_crawl():
   def __init__(self,instance, dir_log, dir_processed,db_username, db_password, db_database, db_server,verbose,**kwargs):
     self.name = "dbloader"
     if verbose:
-      self.log = logger(self.name,dir_log).verbose_log
+      self.log = Logger(self.name,dir_log).verbose_log
     else:
-      self.log = logger(self.name,dir_log).log
+      self.log = Logger(self.name,dir_log).log
     self.dir_data = dir_processed
     self.instance = instance
     if not(db_username) or not(db_password) or not(db_database) or not(db_server):
@@ -111,5 +111,5 @@ if __name__ == '__main__':
   parameters = {"dir_log":"log","dir_processed":"processed_crawl","db_server":"localhost","db_database":"twaler","db_username":"snorgadmin","db_password":"snorg321"}
   conf = parse_arguments(usage,parameters,[]);
 
-  loader = load_crawl(**conf)
+  loader = Load_crawl(**conf)
   loader.load_loop()

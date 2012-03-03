@@ -28,16 +28,16 @@ def getChildByName(dom, name):
       return child
   return None
 
-class process_crawl():
+class Process_crawl():
   def __init__(self,instance,dir_log, dir_cache, dir_processed,process_userinfo, process_friends, process_tweets, process_listmembers, process_memberships, process_to_db, extract_mentions, extract_urls,extract_hashes,verbose,**kwargs):
     self.name = "process_crawl"
     if verbose:
-      self.log = logger(self.name,dir_log).verbose_log
+      self.log = Logger(self.name,dir_log).verbose_log
     else:
-      self.log = logger(self.name,dir_log).log
+      self.log = Logger(self.name,dir_log).log
     self.instanceTimeStamp = timefunctions.instanceToSqlTime(instance)
     self.dir_cache = dir_cache
-    self.cache_accessor = cache_accessor(self.dir_cache,self.log)
+    self.cache_accessor = CacheAccessor(self.dir_cache,self.log)
     self.process_userinfo = process_userinfo
     self.process_friends = process_friends
     self.process_memberships = process_memberships
@@ -345,5 +345,5 @@ if __name__ == '__main__':
   parameters = {"instance":timefunctions.datestamp(),"dir_log":"log","dir_cache":"cache","dir_processed":"processed_crawl","process_to_db":0,"db_server":"localhost","db_database":"twaler","db_username":"snorgadmin","db_password":"snorg321","process_userinfo":1,"process_friends":1,"process_memberships":1,"process_tweets":1,"process_listmembers":1,"extract_mentions":1,"extract_urls":1,"extract_hashes":1,"verbose":1}
   int_params = ["process_userinfo","process_friends","process_memberships",  "process_tweets","process_listmembers","extract_mentions","extract_urls","extract_hashes","verbose"]
   conf = parse_arguments(usage,parameters,int_params);
-  crawler = process_crawl(**conf)
+  crawler = Process_crawl(**conf)
   crawler.process_loop()
