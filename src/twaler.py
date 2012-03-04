@@ -62,7 +62,6 @@ class Twaler:
             processes = []
             for seed in seeds:              # N.B. seed is a file with seeds
                 timestamp = misc.timefunctions.datestamp()
-                import code;
                 # Crawl
                 self.crawl(timestamp, seed)
                 # FIXME: this is awful lot of processes

@@ -46,7 +46,6 @@ class Process_crawl():
     self.extract_mentions = extract_mentions
     self.extract_urls = extract_urls
     self.extract_hashes = extract_hashes
-
     if process_to_db and kwargs["db_username"] and kwargs["db_password"] and kwargs["db_server"] and kwargs["db_database"]:
       self.db = mysql_db(kwargs["db_server"],kwargs["db_username"],kwargs["db_password"],kwargs["db_database"],self.log)
     else:

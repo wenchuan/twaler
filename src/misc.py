@@ -146,10 +146,10 @@ class CacheAccessor():
         #go through the crawl directory and get all the crawl_id folders
         for file in os.walk(self.cache_dir):
             filename = file[0]
-        pattern = re.escape(self.cache_dir) + "/\d+/\d+/\d+/(\d*)"
-        m = re.match(pattern, filename)
-        if m:
-            yield(m.group(1),filename)
+            pattern = re.escape(self.cache_dir) + "/\d+/\d+/\d+/(\d*)"
+            m = re.match(pattern, filename)
+            if m:
+                yield(m.group(1),filename)
 
 
 class mysql_db():
