@@ -59,24 +59,11 @@ class Twaler:
                 self.generateseeds()
                 self.log("Generate seeds complete")
                 seeds = os.listdir(self.dir_seeds)
-            processes = []
             for seed in seeds:              # N.B. seed is a file with seeds
                 timestamp = misc.timefunctions.datestamp()
                 # Crawl
                 self.crawl(timestamp, seed)
-                # FIXME: this is awful lot of processes
-                """
-                do we really need this ?????
-                is process And Load really that hard to do? it takes an entire
-                thread to complete it?
-                Why not just use thread queue???
-
-                """
-                # Process and Load with multiple threads
-                p = multiprocessing.Process(target=self.processAndLoad,
-                                            args=(timestamp,))
-                processes.append(p)
-                p.start()
+                self.processAndLoad(timestamp)
                 # Move seedfile out of seed directory
                 seedpath = os.path.join(self.dir_seeds, seed)
                 cachepath = os.path.join(self.dir_cache, timestamp,
@@ -84,9 +71,6 @@ class Twaler:
                 seeddonepath = os.path.join(self.dir_seedsdone, seed)
                 shutil.copy(seedpath, cachepath)
                 shutil.move(seedpath, seeddonepath)
-            # Wait for this round to finish
-            for p in processes:
-                p.join()
 
     def generateseeds(self):
         self.configurations["instance"] = misc.timefunctions.datestamp()
