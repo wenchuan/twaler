@@ -8,7 +8,8 @@
     "db_username" : "snorgadmin",
     "db_password" : "snorg321",
     "verbose" : 1,
-    "crawl_num_of_threads" : 10,
+
+    "crawl_num_of_threads" : 2,
 
     "process_userinfo" : 1,
     "process_tweets" : 1,
