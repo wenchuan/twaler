@@ -41,12 +41,12 @@ class Generator():
     def generate(self):
         if (self.seed_userinfo or self.seed_tweets or self.seed_friends or
             self.seed_listmemberships):
-            self.generate_newUsers()
-            self.generate_oldUsers()
+            self.generate_newSeeds()
+            self.generate_updates()
         if self.seed_lists:
             self.generate_lists()
 
-    def generate_newUsers(self):
+    def generate_newSeeds(self):
         try:
             # TODO improve our naive seed generation method
             #---------------------------------
@@ -127,7 +127,7 @@ class Generator():
         except Exception as e:
             self.log(str(e))
 
-    def generate_oldUsers(self):
+    def generate_updates(self):
         try:
             stmt = "SELECT user_id FROM users_update Order by info_updated desc limit " + str(self.seed_limit)
             self.mysql_db.execute(stmt)
