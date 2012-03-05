@@ -11,10 +11,15 @@ CREATE TABLE users (
 	created_at TIMESTAMP DEFAULT 0
 );
 
+CREATE TABLE target_users (
+	user_id BIGINT UNSIGNED PRIMARY KEY
+);
+
 CREATE TABLE tweets (
 	tweet_id BIGINT UNSIGNED PRIMARY KEY,
 	user_id BIGINT UNSIGNED,
 	date TIMESTAMP DEFAULT 0, 
+  date_crawled TIMESTAMP DEFAULT 0,
 	text VARCHAR(140)
 );
 
