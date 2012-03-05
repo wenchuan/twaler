@@ -41,7 +41,8 @@ class Twaler:
     def twale(self):
         self.child = os.fork()              # create a child process
         if self.child == 0:
-            self.twalerloop()               # child works, father watches
+            # self.twalerloop()               # child works, father watches
+            self.watchlist()
         else:
             self.watch()
 
@@ -56,9 +57,30 @@ class Twaler:
     def watchlist(self):
         '''Watch a fixed list of user_id'''
         # get that list first
+        self.crawl('seed.lst')
         # get that list's friend second
-        # enter plan-crawl-update loop
+        db = misc.mysql_db(self.config['db_server'],
+                           self.config['db_username'],
+                           self.config['db_password'],
+                           self.config['db_database'], self.log)
+        stmt = 'SELECT DISTINCT friend_id FROM friends'
+        db.execute(stmt)
+        results = db.cursor.fetchall()
+        db.__del__()
+        # N.B. It's possible that the list is too big to crawl at once
+        fp = open('seeds/friend.lst', 'w')
+        for id in results:
+            fp.write('%s\n' % id[0])
+        fp.close()
+        self.crawl('friend.lst')
+
+        #________________________________
+        #
         import pdb; pdb.set_trace()
+        #
+        #________________________________
+
+        # Enter the generate-crawl-update loop
         while True:
             seeds = os.listdir(self.dir_seeds)
 

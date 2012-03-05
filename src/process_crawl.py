@@ -139,9 +139,10 @@ class Process_crawl():
           user_name = re.search("twitter.com/(.*)/statuses",raw_tweet_id).group(1)
           text = re.search("%s: (.*)"%(user_name),raw_text).group(1)
           date = timefunctions.rssToSqlTime(raw_date)
+          now = timefunctions.sqlTime()
 
           #insert into tweet database
-          self.db.insert("tweets", (tweet_id,nid,date,text))
+          self.db.insert("tweets", (tweet_id,nid,date,now,text))
 
           #get mentions
           if (self.extract_mentions):

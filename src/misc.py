@@ -42,6 +42,10 @@ class timefunctions:
         return time.strftime("%Y.%m.%d.%H.%M.%S", time.localtime())
 
     @staticmethod
+    def sqlTime():
+        return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+    @staticmethod
     def rssToSqlTime(dtstr):
         # N.B. The time used here is GMT time!!
         # not all platforms support '%z' with strptime, manually parse it

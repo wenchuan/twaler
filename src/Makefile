@@ -1,5 +1,5 @@
 all:
-	cp seedfile.txt seeds
+	cp seed.lst seeds
 	python3 twaler.py config.txt
 
 quota:
