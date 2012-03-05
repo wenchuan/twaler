@@ -4,6 +4,7 @@ import shutil
 import sys
 import signal
 import multiprocessing
+import json
 
 import crawl
 import process_crawl
@@ -17,11 +18,15 @@ class Twaler:
     # TODO fix all these parameter passing diaster
     def __init__(self, dir_cache, dir_log, dir_seeds, dir_seedsdone,
                  **kwargs):
-        """create directory for cache and log if not already"""
+        # load configurations from config.json
+        fp = open('config.json')
+        self.config = json.load(fp)
+        fp.close()
         self.name = "twaler"
         self.configurations = kwargs
         self.dir_seeds = dir_seeds
         self.dir_seedsdone = dir_seedsdone
+        # Create directory for cache and log if not already
         if not os.path.exists(dir_seedsdone):
             os.makedirs(dir_seedsdone)
         self.dir_cache = dir_cache
@@ -48,6 +53,15 @@ class Twaler:
             os.kill(self.child, signal.SIGKILL)
         sys.exit()
 
+    def watchlist(self):
+        '''Watch a fixed list of user_id'''
+        # get that list first
+        # get that list's friend second
+        # enter plan-crawl-update loop
+        import pdb; pdb.set_trace()
+        while True:
+            seeds = os.listdir(self.dir_seeds)
+
     def twalerloop(self):
         # Loop forever unless interrupted by user
         while True:
@@ -59,18 +73,8 @@ class Twaler:
                 self.generateseeds()
                 self.log("Generate seeds complete")
                 seeds = os.listdir(self.dir_seeds)
-            for seed in seeds:              # N.B. seed is a file with seeds
-                timestamp = misc.timefunctions.datestamp()
-                # Crawl
-                self.crawl(timestamp, seed)
-                self.processAndLoad(timestamp)
-                # Move seedfile out of seed directory
-                seedpath = os.path.join(self.dir_seeds, seed)
-                cachepath = os.path.join(self.dir_cache, timestamp,
-                                         "seed["+seed+"].txt")
-                seeddonepath = os.path.join(self.dir_seedsdone, seed)
-                shutil.copy(seedpath, cachepath)
-                shutil.move(seedpath, seeddonepath)
+            for seed in seeds:          # N.B. seed is a filename with seeds
+                self.crawl(seed)
 
     def generateseeds(self):
         self.configurations["instance"] = misc.timefunctions.datestamp()
@@ -79,7 +83,10 @@ class Twaler:
         generator = generate_seeds.Generator(**self.configurations)
         generator.generate()
 
-    def crawl(self, timestamp, seed):
+    def crawl(self, seed):
+        '''Read seed file, download, process and load to database'''
+        # A time stamp universally identified the crawling instance
+        timestamp = misc.timefunctions.datestamp()
         # Set new parameters for crawling
         # A folder under cache will be created with the timestamp
         seed_cache_dir = os.path.join(self.dir_cache, timestamp)
@@ -87,10 +94,18 @@ class Twaler:
         self.configurations["dir_cache"] = seed_cache_dir
         self.configurations["instance"] = timestamp
         self.configurations["dir_log"] = os.path.join(seed_cache_dir, "log")
-        #CRAWL the given instance
+        # crawl the given instance
         self.log("Crawling " + seed)
         crawler = crawl.Crawler(**self.configurations)
         crawler.crawlloop()
+        self.processAndLoad(timestamp)
+        # Move seedfile out of seed directory
+        seedpath = os.path.join(self.dir_seeds, seed)
+        cachepath = os.path.join(self.dir_cache, timestamp,
+                                 "seed["+seed+"].txt")
+        seeddonepath = os.path.join(self.dir_seedsdone, seed)
+        shutil.copy(seedpath, cachepath)
+        shutil.move(seedpath, seeddonepath)
 
     def processAndLoad(self, timestamp):
         # A folder under cache will be created with the timestamp
@@ -168,7 +183,6 @@ if __name__ == '__main__':
     #parameters from generate_seeds
     parameters.update({"seed_userinfo":1,"seed_tweets":1,"seed_friends":1,"seed_listmemberships":1,"seed_lists":1,"seed_per_file":200,"seed_limit":2000,"update_limit":2000,"list_limit":100})
     int_params.extend(["seed_userinfo","seed_tweets","seed_friends","seed_listmemberships","seed_lists","seed_per_file","seed_limit","update_limit","list_limit"])
-
     conf = parse_arguments(usage,parameters,int_params);
     t = Twaler(**conf)
     t.twale()
