@@ -76,7 +76,7 @@ class Twaler:
         self.configurations["instance"] = misc.timefunctions.datestamp()
         self.configurations["dir_seeds"] = self.dir_seeds
         self.configurations["dir_log"] = self.dir_log
-        generator = generate_seeds.generate_seeds(**self.configurations)
+        generator = generate_seeds.Generator(**self.configurations)
         generator.generate()
 
     def crawl(self, timestamp, seed):
