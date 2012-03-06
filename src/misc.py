@@ -81,6 +81,7 @@ class CacheAccessor():
         """
         Return and create (if needed), the path associated with this user id
         """
+        uid = uid.zfill(3)
         cache_path = os.path.join(basepath, uid[-1], uid[-2], uid[-3], uid)
         if listname:
             cache_path = os.path.join(cache_path, "lists", listname)
