@@ -56,14 +56,20 @@ class Twaler:
 
     def watchlist(self):
         '''Watch a fixed list of user_id'''
-        # get that list first
-        self.crawl('seed.lst')
-        # get that list's friend second
+        # Clean up database first
         db = misc.mysql_db(self.config['db_server'],
                            self.config['db_username'],
                            self.config['db_password'],
                            self.config['db_database'], self.log)
-        stmt = 'SELECT DISTINCT friend_id FROM friends'
+        stmt = 'DELETE FROM target_users'
+        db.execute(stmt)
+        stmt = 'LOAD DATA LOCAL INFILE seed.lst INTO TABLE target_users'
+        db.execute(stmt)
+        # Get that list first
+        self.crawl('seed.lst')
+        # Get that list's friend second
+        stmt = ('SELECT DISTINCT friend_id FROM friends, target_users '
+                'WHERE friends.user_id = target_users.user_id')
         db.execute(stmt)
         results = db.cursor.fetchall()
         db.__del__()
@@ -82,7 +88,7 @@ class Twaler:
                 self.log("Seed Folder Empty")
                 #________________________________
                 #
-                import pdb; pdb.set_trace()
+                # import pdb; pdb.set_trace()
                 #
                 #________________________________
                 self.generateseeds()
