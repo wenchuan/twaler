@@ -67,22 +67,10 @@ class Twaler:
         db.execute(stmt)
         results = db.cursor.fetchall()
         db.__del__()
-        # N.B. It's possible that the list is too big to crawl at once
-        fp = open('seeds/friend.lst', 'w')
-        for id in results:
-            fp.write('%s\n' % id[0])
-        fp.close()
-        self.crawl('friend.lst')
-
-        #________________________________
-        #
-        import pdb; pdb.set_trace()
-        #
-        #________________________________
-
+        misc.write_to_files(results, 'initial_friends',
+                            self.config['seed_per_file'], 'utf')
         # Enter the generate-crawl-update loop
-        while True:
-            seeds = os.listdir(self.dir_seeds)
+        self.twalerloop()
 
     def twalerloop(self):
         # Loop forever unless interrupted by user
@@ -92,6 +80,11 @@ class Twaler:
             # Generate more if needed
             if not seeds:
                 self.log("Seed Folder Empty")
+                #________________________________
+                #
+                import pdb; pdb.set_trace()
+                #
+                #________________________________
                 self.generateseeds()
                 self.log("Generate seeds complete")
                 seeds = os.listdir(self.dir_seeds)

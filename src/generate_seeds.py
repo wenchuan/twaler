@@ -4,6 +4,7 @@ import os
 import sys
 
 from misc import parse_arguments
+from misc import write_to_files
 from misc import timefunctions
 from misc import mysql_db
 from misc import Logger
@@ -71,24 +72,8 @@ class Generator():
             #---------------------------------
             # fetch results and write to new seed file
             results = self.mysql_db.cursor.fetchall()
-            currSeedFile = 0
-            currSeed = 0
-            name = 'seeds_%s_%s.txt' % (self.instance, currSeedFile)
-            seedFileOut = open(os.path.join(self.dir_seedout, name), "w")
-            for user in results:
-                #open new file when seed per file limit is reached
-                if currSeed == self.seed_per_file:
-                    self.log(("generate_user file %s Completed", name))
-                    seedFileOut.close()
-                    currSeedFile += 1
-                    name = 'seeds_%s_%s.txt' % (self.instance, currSeedFile)
-                    seedFileOut = open(os.path.join(self.dir_seedout, name),
-                                       "w")
-                    currSeed = 0
-                seedFileOut.write(seedType + "\t" + str(user[0])+"\n")
-                currSeed += 1
-            self.log(("generate_user file %s Completed", name))
-            seedFileOut.close()
+            write_to_files(results, 'seeds_' + self.instance,
+                           self.seed_per_file, seedType)
         except Exception as e:
             self.log(str(e))
 
@@ -145,24 +130,8 @@ class Generator():
             #---------------------------------
             # fetch results and write to new seed file
             results = self.mysql_db.cursor.fetchall()
-            currSeedFile = 0
-            currSeed = 0
-            name = 'update_%s_%s.txt' % (self.instance, currSeedFile)
-            seedFileOut = open(os.path.join(self.dir_seedout, name), "w")
-            for user in results:
-                #open new file when seed per file limit is reached
-                if currSeed == self.seed_per_file:
-                    self.log(("generate_user file %s Completed", name))
-                    seedFileOut.close()
-                    currSeedFile += 1
-                    name = 'update_%s_%s.txt' % (self.instance, currSeedFile)
-                    seedFileOut = open(os.path.join(self.dir_seedout, name),
-                                       "w")
-                    currSeed = 0
-                seedFileOut.write(seedType + "\t" + str(user[0])+"\n")
-                currSeed += 1
-            self.log(("generate_user file %s Completed", name))
-            seedFileOut.close()
+            write_to_files(results, 'update_' + self.instance,
+                           self.seed_per_file, seedType)
         except Exception as e:
             self.log(str(e))
 

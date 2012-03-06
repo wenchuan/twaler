@@ -221,6 +221,28 @@ class file_db():
         return None
 
 
+def write_to_files(seeds, file_prefix, id_per_file, seedtype='utf'):
+    '''
+    Dump a list of seeds into directory, started by file_prefix every
+    file contains id_per_file ids, individual files are numbered by
+    numbers, starting from zero
+    '''
+    suffix = cnt = 0
+    seed_dir = 'seeds'      # N.B. need change?
+    name = '%s_%s.txt' % (file_prefix, suffix)
+    fp = open(os.path.join(seed_dir, name), 'w')
+    for user in seeds:
+        if cnt == id_per_file:
+            # Open new file when one file is filled
+            fp.close()
+            suffix += 1
+            name = '%s_%s.txt' % (file_prefix, suffix)
+            fp = open(os.path.join(seed_dir, name), 'w')
+            cnt = 0
+        fp.write('%s\t%s\n' % (seedtype, user[0]))
+        cnt += 1
+    fp.close()
+
 # This garbage needs to be purged
 def parse_arguments(usage, parameters, int_params):
     """Parses parameters from config.txt and manually override parameters
