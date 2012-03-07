@@ -29,12 +29,30 @@ if ($_GET['id']) {
   echo "tweets: $tweet_cnt<br>";
   echo "following: $friend_cnt<br>";
   echo "follower: $follower_cnt<br>";
+  echo "<a href=\"#posts\">posts</a><br>";
+  echo "<a href=\"#reads\">reads</a><br>";
   echo "<hr>";
 
   $query="SELECT * FROM tweets WHERE user_id=$id ORDER BY date DESC";
   $result=mysql_query($query);
   $num=mysql_numrows($result);
-  echo "displaying $num tweets<br>";
+  echo "<a name='posts'> <i>displaying $num tweets</i></a><br>";
+  $i=0;
+  while ($i < $num) {
+    $date=mysql_result($result, $i, "date");
+    $tweet=mysql_result($result, $i, "text");
+
+    echo "$date : $tweet<br>";
+
+    $i++;
+  }
+
+  echo "<hr>";
+  $query="SELECT * FROM tweets WHERE user_id IN (SELECT friend_id FROM friends WHERE user_id=$id) ORDER BY date DESC";
+  $result=mysql_query($query);
+  $num=mysql_numrows($result);
+  $num=min($num, 1000);
+  echo "<a name='reads'> <i>displaying the latest $num tweets</i></a><br>";
   $i=0;
   while ($i < $num) {
     $date=mysql_result($result, $i, "date");
@@ -48,6 +66,7 @@ if ($_GET['id']) {
   $query='SELECT * FROM users';
   $result=mysql_query($query);
   $num=mysql_numrows($result);
+  echo "$num users<br>";
   $i=0;
   while ($i < $num) {
     $name=mysql_result($result, $i, "user_name");
