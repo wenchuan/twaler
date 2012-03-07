@@ -98,8 +98,6 @@ class _CrawlerWorker(threading.Thread):
     CRAWL_USERINFO = "u"
     CRAWL_TWEETS = "t"
     CRAWL_FRIENDS = "f"
-    CRAWL_LISTMEMBERSHIPS = "l"
-    CRAWL_MEMBERS = "m"
     TERMINATE_SIGNAL = "TERMINATE"
 
     def __init__(self, idqueue, logger, cachedir, verbose, **kwargs):
@@ -250,7 +248,7 @@ class _CrawlerWorker(threading.Thread):
         else:
             type = seed[0]
             if '*' in type:
-                type = 'utf'            # TODO: add more data type
+                type = 'utf'
             data = seed[1]
         # check for extra column separated by space
         fields = data.split(" ")
@@ -266,10 +264,6 @@ class _CrawlerWorker(threading.Thread):
             self.fetch_friends(uid)
         if _CrawlerWorker.CRAWL_TWEETS in type:
             self.fetch_tweets(uid)
-        if _CrawlerWorker.CRAWL_LISTMEMBERSHIPS in type:
-            self.fetch_listmemberships(uid)
-        if _CrawlerWorker.CRAWL_MEMBERS in type:
-            self.fetch_members(uid)
 
     def fetch_userinfo(self, uid):
         self.log("fetching userinfo for uid:%s " % uid)

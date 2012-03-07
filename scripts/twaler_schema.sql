@@ -44,24 +44,10 @@ CREATE TABLE urls (
 	UNIQUE (tweet_id, url)
 );
 
-CREATE TABLE lists (
-	list_id BIGINT UNSIGNED PRIMARY KEY,
-	list_name VARCHAR(100),
-	list_owner BIGINT UNSIGNED
-);
-
 CREATE TABLE hash_tags (
 	tweet_id BIGINT UNSIGNED,
 	hash_tags VARCHAR(140),
 	UNIQUE (tweet_id, hash_tags)
-);
-
-CREATE TABLE list_memberships (
-	list_id BIGINT UNSIGNED,
-	member_id BIGINT UNSIGNED,
-	date_added TIMESTAMP DEFAULT 0,
-	date_last TIMESTAMP DEFAULT 0,
-	UNIQUE (list_id, member_id)
 );
 
 -- Metadata Tables
@@ -70,13 +56,7 @@ CREATE TABLE users_update (
 	info_updated TIMESTAMP DEFAULT 0,
 	tweet_updated TIMESTAMP DEFAULT 0,
 	friend_updated TIMESTAMP DEFAULT 0,
-	membership_updated TIMESTAMP DEFAULT 0,
 	last_tweet_cursor BIGINT UNSIGNED
-);
-
-CREATE TABLE list_update (
-	list_id BIGINT UNSIGNED PRIMARY KEY,
-	list_updated TIMESTAMP DEFAULT 0
 );
 
 CREATE TABLE crawl_instances (

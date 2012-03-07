@@ -74,8 +74,6 @@ class Load_crawl():
         self.load("mentions",filepath)
       if (file == 'urls.tsv'):
         self.load("urls",filepath)
-      if (file == 'lists.tsv'):
-        self.load("lists",filepath)
       if (file == 'hashes.tsv'):
         self.load("hashes",filepath)
       if (file == 'crawl_instances.tsv'):
@@ -84,12 +82,8 @@ class Load_crawl():
         self.load("hash_tags",filepath)
       if (file == 'friends.tsv'):
         self.load_update("friends",filepath,["date_last"])
-      if (file == 'list_memberships.tsv'):
-        self.load_update("list_memberships",filepath,["date_last"])
       if (file == 'users_update.tsv'):
         self.load_update("users_update",filepath,["info_updated","tweet_updated","friend_updated","membership_updated","last_tweet_cursor"])
-      if (file == 'lists_update.tsv'):
-        self.load_update("list_update",filepath,["list_updated"])
 
 def usage():
   print("""\nUsage: %s [manual parameters] <config file>\n

@@ -9,13 +9,14 @@
     "db_password" : "snorg321",
     "verbose" : 1,
 
-    "crawl_num_of_threads" : 2,
+    "crawl_num_of_threads" : 4,
 
     "process_userinfo" : 1,
     "process_tweets" : 1,
     "process_friends" : 1,
     "process_memberships" : 1,
     "process_listmembers" : 1,
+
     "extract_mentions" : 1,
     "extract_urls" : 1,
     "extract_hashes" : 1,
@@ -28,5 +29,4 @@
     "seed_per_file" : 5,
     "seed_limit" : 10,
     "update_limit" : 0,
-    "list_limit" : 10
 }
