@@ -44,8 +44,6 @@ class Generator():
             self.seed_listmemberships):
             self.generate_newSeeds()
             self.generate_updates()
-        if self.seed_lists:
-            self.generate_lists()
 
     def generate_newSeeds(self):
         try:
@@ -74,41 +72,6 @@ class Generator():
             results = self.mysql_db.cursor.fetchall()
             write_to_files(results, 'seeds_' + self.instance,
                            self.seed_per_file, seedType)
-        except Exception as e:
-            self.log(str(e))
-
-    def generate_lists(self):
-        try:
-            # Method: generate lists
-            stmt = ("SELECT list_id, list_owner FROM lists "
-                    "WHERE list_id NOT IN "
-                    "(SELECT u.list_id FROM list_update u) "
-                    "group by list_id order by count(*) desc limit " +
-                    str(self.list_limit))
-            self.mysql_db.execute(stmt)
-            self.log("MySQL generate_lists Query Complete")
-            #fetch results and write to seed file
-            newLists = self.mysql_db.cursor.fetchall()
-            currSeedFile = 0
-            currSeed = 0
-            name = 'listseeds_%s_%s.txt' % (self.instance, currSeedFile)
-            seedFileOut = open(os.path.join(self.dir_seedout, name), "w")
-
-            for list in newLists:
-                #open new file when seed per file limit is reached
-                if currSeed == self.seed_per_file:
-                    self.log(("generate_lists file %s Completed", name))
-                    seedFileOut.close()
-                    currSeedFile += 1
-                    name = 'listseeds_%s_%s.txt' % (self.instance,
-                                                    currSeedFile)
-                    seedFileOut = open(os.path.join(self.dir_seedout, name),
-                                       "w")
-                    currSeed = 0
-                seedFileOut.write("m\t" + str(list[1])+ " " + str(list[0])+"\n")
-                currSeed += 1
-            self.log(("generate_lists file %s Completed", name))
-            seedFileOut.close()
         except Exception as e:
             self.log(str(e))
 

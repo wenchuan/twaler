@@ -191,73 +191,6 @@ class Process_crawl():
       fid = gettext(id)
       self.db.insert("friends", (str(nid),fid,self.instanceTimeStamp,self.instanceTimeStamp),{"date_last":self.instanceTimeStamp})
 
-  def store_memberships(self, nid,file):
-    self.log("processing " + file)
-    try:
-      #Open up the file for reading
-      with closing(gzip.open(file, "r")) as fin:
-        xmltxt = fin.read()
-        xmldom = xml.dom.minidom.parseString(xmltxt)
-        memberships = xmldom.getElementsByTagName("list")
-      #can't open file for reading...
-    except Exception as e:
-      self.log("Couldn't get memberships\n" + str(e))
-
-    for membership in memberships:
-      try:
-        #get list id
-        list_id = gettext(getChildByName(membership, "id"))
-        #get userid of list owner
-        user = getChildByName(membership, "user")
-        owner_id = gettext(getChildByName(user, "id"))
-        list_name = gettext(getChildByName(membership, "full_name"))
-
-        #create list entry if it doesn't already exist
-        self.db.insert("lists", (list_id,list_name,owner_id),{"list_name":list_name,"list_owner":owner_id})
-
-        #create list membership entry with user
-        #update the last_seen if we've already seen this member
-        self.db.insert("list_memberships", (list_id,str(nid),self.instanceTimeStamp,self.instanceTimeStamp), {"date_last":self.instanceTimeStamp})
-
-      except Exception as e:
-        self.log("Couldn't get list memberships %s" % e)
-        continue
-
-  def store_listmembers(self,nid,list_dir):
-    lists = os.listdir(list_dir)
-    #for all the lists under this user
-    for list in lists:
-      list_path = os.path.join(list_dir,list)
-      infiles = os.listdir(list_path)
-      for file in infiles:
-        #If this is the type of file we are looking for
-        if (file[:17] == 'members.xml.data.'):
-          #Get full input filename with path
-          fin_name = os.path.join(list_path,file)
-          self.log("processing " + fin_name)
-          try:
-            #Open up the file for reading
-            with closing(gzip.open(fin_name, "r")) as fin:
-              xmltxt = fin.read()
-              xmldom = xml.dom.minidom.parseString(xmltxt)
-              members = xmldom.getElementsByTagName("user")
-          #can't open file for reading...
-          except Exception as e:
-            self.log("Couldn't get members\n" + str(e))
-            continue
-
-          for member in members:
-            try:
-              member_id = gettext(getChildByName(member, "id"))
-              #create list membership entry with user
-              #update the last_seen if we've already seen this member
-              self.db.insert("list_memberships", (list,member_id,self.instanceTimeStamp,self.instanceTimeStamp), {"last_updated":self.instanceTimeStamp})
-
-            except Exception as e:
-                self.log("Couldn't get list members %s" % e)
-                continue
-      self.db.insert("list_update", (list, self.instanceTimeStamp), {"list_updated":self.instanceTimeStamp})
-
   """Main Loop"""
 
   def process_loop(self):
@@ -292,19 +225,8 @@ class Process_crawl():
             self.store_friends(nid, file_path)
             update_friends = self.instanceTimeStamp
 
-          if (self.process_memberships and file[:21] == 'memberships.xml.data.'):
-            self.store_memberships(nid, file_path)
-            update_memberships = self.instanceTimeStamp
-
         self.db.insert("users_update", (nid, update_userinfo, update_tweets, update_friends, update_memberships, update_lastchecked), {"info_updated":update_userinfo,"tweet_updated":update_tweets,"friend_updated":update_friends,"membership_updated":update_memberships,"last_tweet_cursor":update_lastchecked})
 
-        #check if the user has any lists under the folder
-        if (self.process_listmembers):
-          try:
-            list_dir = os.path.join(dir,"lists")
-            self.store_listmembers(nid, list_dir)
-          except:
-            continue
       except Exception as e:
         self.log("Couldn't parse user " + str(nid) + "\n\t" + str(e))
     self.db.__del__()
