@@ -28,7 +28,7 @@ class Twaler:
         # Setup logger
         #----------------
         formatter = logging.Formatter(
-                '%(asctime)-6s: %(funcName)s - %(filename)s:%(lineno)d - '
+                '%(asctime)-6s: %(funcName)s(%(filename)s:%(lineno)d) - '
                 '%(levelname)s - %(message)s')
         consoleLogger = logging.StreamHandler()
         consoleLogger.setLevel(logging.INFO)
@@ -112,7 +112,7 @@ class Twaler:
                 self.logger.debug("Seed folder empty")
                 #________________________________
                 #
-                import pdb; pdb.set_trace()
+                # import pdb; pdb.set_trace()
                 #
                 #________________________________
                 self.generateseeds()
@@ -125,7 +125,7 @@ class Twaler:
         self.configurations["instance"] = misc.timefunctions.datestamp()
         self.configurations["dir_seeds"] = self.dir_seeds
         self.configurations["dir_log"] = self.dir_log
-        generator = generate_seeds.Generator(**self.configurations)
+        generator = generate_seeds.Generator(self.config, self.logger)
         generator.generate()
 
     def crawl(self, seed):
