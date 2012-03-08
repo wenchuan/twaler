@@ -22,23 +22,15 @@ class Crawler:
      Generates worker threads to crawl through the seeds directory
 
     """
-    def __init__(self, seed_file, dir_log,
-                 dir_cache, crawl_num_of_threads, verbose, **kwargs):
-        if not os.path.exists(dir_cache):
-            os.makedirs(dir_cache)
+    def __init__(self, seed_file, cache_dir, config, logger):
         self.name = "Crawler"
         self.seed_file = seed_file
-        self.dir_cache = dir_cache
-        self.logger = misc.Logger(self.name, dir_log)
-        if verbose:
-            self.log = self.logger.verbose_log
-        else:
-            self.log = self.logger.log
-        self.verbose = verbose
+        self.config = config
+        self.logger = logger
+        self.dir_cache = cache_dir
+        if not os.path.exists(self.dir_cache):
+            os.makedirs(self.dir_cache)
         self.idqueue = queue.Queue(0)
-        self.num_of_threads = crawl_num_of_threads
-        self.logger.log("requests starting at %d" %
-                        _CrawlerWorker.getrequestquota(self))
 
     def crawl(self):
         """Crawl and watch"""
@@ -54,23 +46,22 @@ class Crawler:
         try:
             os.wait()
         except (KeyboardInterrupt, SystemExit):
-            self.log("Keyboard Interrupt Received")
+            self.logger.warning("Keyboard Interrupt Received")
             os.kill(self.child, signal.SIGKILL)
         sys.exit()
 
     def crawlloop(self):
         """Main crawl loop"""
         self.workers = []       # set up workers
-        for i in range(self.num_of_threads):
-            worker = _CrawlerWorker(self.idqueue, self.logger,
-                                   self.dir_cache, self.verbose)
+        for i in range(self.config['crawl_num_of_threads']):
+            worker = _CrawlerWorker(self.idqueue, self.logger, self.dir_cache)
             worker.setName("Worker " + str(i))
             self.workers.append(worker)
             worker.start()
         try:
             # read seed file and crawl
             seedFileStream = open(os.path.join(self.seed_file),"r")
-            self.log("Crawling " + self.seed_file)
+            self.logger.info("Crawling " + self.seed_file)
             while True:
                 line = seedFileStream.readline()
                 if not line:
@@ -80,16 +71,15 @@ class Crawler:
                     break
                 self.idqueue.put(seed)  # put seeds on queue
             self.idqueue.join()         # block until all seeds are processed
-            self.log("File " + self.seed_file + " completed")
+            self.logger.info("File " + self.seed_file + " completed")
             seedFileStream.close()
         except Exception as e:
-            self.log(str(e))
+            self.logger.error(str(e))
         for th in self.workers:         # send terminating signals to workers
             self.idqueue.put(_CrawlerWorker.TERMINATE_SIGNAL)
         for th in self.workers:         # wait for all workers to return
             th.join()
-        self.log("Exited Successfully")
-        self.logger.__del__() # XXX the logger isn't working as expected...
+        self.logger.debug("Exited Successfully")
 
 
 class _CrawlerWorker(threading.Thread):
@@ -100,13 +90,10 @@ class _CrawlerWorker(threading.Thread):
     CRAWL_FRIENDS = "f"
     TERMINATE_SIGNAL = "TERMINATE"
 
-    def __init__(self, idqueue, logger, cachedir, verbose, **kwargs):
+    def __init__(self, idqueue, logger, cachedir):
         threading.Thread.__init__(self)
-        if verbose:
-            self.log = logger.verbose_log
-        else:
-            self.log = logger.silent_log
-        self.cache_accessor = misc.CacheAccessor(cachedir, self.log)
+        self.logger = logger
+        self.cache_accessor = misc.CacheAccessor(cachedir, self.logger)
         # Twitter username and password is required for some requests
         self.username = "snorguser"
         self.password = "snorg321"
@@ -153,10 +140,12 @@ class _CrawlerWorker(threading.Thread):
                 if (response.code == 200):
                     return response
                 elif (response.code == 302):
-                    print("302 received\n" + self.getrawheaders(response))
+                    self.logger.error("302 received\n" +
+                            self.getrawheaders(response))
                     raise Exception("redirection response")
                 elif (response.code == 502):
-                    self.log("502, connection error, sleeping and retrying")
+                    self.logger.warning("502, connection error, "
+                            "sleeping and retrying")
                     time.sleep(2)
                     self.twitter_connection = None
                 # 400 is the code that twitter uses when your out of quota
@@ -166,28 +155,29 @@ class _CrawlerWorker(threading.Thread):
                         if (quota > 0):
                             time.sleep(2)
                             break
-                        self.log("400, request quota: %d. sleeping for 10 "
-                                 "more minutes and checking again" % quota)
+                        self.logger.info("400, request quota: %d. Sleeping "
+                                "10 more minutes and checking again" % quota)
                         time.sleep(10 * 60)
                 else:
-                    self.log("response code %d, sleeping and retrying" %
-                             response.code)
+                    self.logger.warning("response code %d, sleeping and retrying"
+                            % response.code)
                     time.sleep(2)
                     self.twitter_connection = None
             except http.client.NotConnected as e:
-                self.log("must have lost connection? resetting connection")
+                self.logger.error(
+                        "must have lost connection? resetting connection")
                 self.twitter_connection = None
             except http.client.IncompleteRead as e:
-                self.log("incomplete read")
+                self.logger.error("incomplete read")
                 time.sleep(10)
             except http.client.ImproperConnectionState as e:
-                self.log("Improper Connection State")
+                self.logger.error("Improper Connection State")
                 time.sleep(10)
             except http.client.HTTPException as e:
-                self.log("HTTP Exception")
+                self.logger.error("HTTP Exception")
                 time.sleep(10)
             except socket.error as e:
-                self.log("socket error: %s\nresetting connection"% e)
+                self.logger.error("socket error: %s\nresetting connection"% e)
                 self.twitter_connection = None
                 time.sleep(5)
         return response
@@ -211,14 +201,16 @@ class _CrawlerWorker(threading.Thread):
                     return info['remaining_hits']
                 #Request returned a bad code
                 else:
-                    self.log("rate limit status request returned: %d" %
-                             page.code);
+                    self.logger.info("rate limit status request returned: %d" %
+                            page.code);
             #Request caused an exception
             except urllib.error.HTTPError as e:
-                self.log("rate limit request failed. error %d" % e.code)
+                self.logger.error("rate limit request failed. error %d"
+                        % e.code)
             except urllib.error.URLError as e:
-                self.log("rate limit request failed. error %s" % e.reason)
-            self.log("rate limit request failed: count:%d" % count)
+                self.logger.error("rate limit request failed. error %s" %
+                        e.reason)
+            self.logger.info("rate limit request failed: count:%d" % count)
             time.sleep(60)
         return 0
 
@@ -229,14 +221,14 @@ class _CrawlerWorker(threading.Thread):
         return
 
     def fetch(self, seed):
-        print("try to fetch " + seed)
         # check rate limit, sleep if no quota
         while (True):
             rq = self.getrequestquota()
             if (rq > 0):
                 break
-            self.log("%s Request Quota: %d, sleeping for another 15 minutes" %
-                     misc.timefunctions.datestamp(), rq)
+            self.logger.info(
+                    "%s Request Quota: %d, sleeping for another 15 minutes" %
+                    misc.timefunctions.datestamp(), rq)
             time.sleep(60 * 15)
         # parse the seed line
         seed = seed.split("\t")
@@ -266,7 +258,7 @@ class _CrawlerWorker(threading.Thread):
             self.fetch_tweets(uid)
 
     def fetch_userinfo(self, uid):
-        self.log("fetching userinfo for uid:%s " % uid)
+        self.logger.debug("fetching userinfo for uid:%s " % uid)
         url = "http://api.twitter.com/1/users/show.xml?user_id=" + uid
         page = self.gethttpresponse(url)
         if (page.code == 200):          # save headers and data on success
@@ -278,7 +270,8 @@ class _CrawlerWorker(threading.Thread):
             # rate_limit_reset = page.getheader("X-RateLimit-Reset")
             return page.code
         else:                           # log problems if any
-            self.log("uid `%s` failed in fetch_userinfo. HTTP code: %s" %
+            self.logger.error(
+                    "uid `%s` failed in fetch_userinfo. HTTP code: %s" %
                      (uid, page.code))
             return page.code
 
@@ -286,7 +279,7 @@ class _CrawlerWorker(threading.Thread):
         """reads first page of friends (people uid follows), tries 5 times
         if it fails with a 5xx error and finally reads next page if one is
         available returns 0 on succes, other number on error"""
-        self.log("fetching friends for uid:%s" % uid)
+        self.logger.debug("fetching friends for uid:%s" % uid)
         next_cursor = -1                # crawl the entire friend list
         while(next_cursor != '0'):      # while friend list is not complete
             url = ("http://api.twitter.com/1/friends/ids.xml?"
@@ -308,14 +301,15 @@ class _CrawlerWorker(threading.Thread):
                     return page.code
                 # got this page but we still have more? continue to next URL
             else:
-                self.log("uid `%s` failed in fetch_friends. HTTP code: %s" %
-                         (uid, page.code))
+                self.logger.error(
+                        "uid `%s` failed in fetch_friends. HTTP code: %s" %
+                        (uid, page.code))
                 return page.code
         # we should never get here
         return 666
 
     def fetch_tweets(self, uid, since_id=None):
-        self.log("fetching tweets for uid:%s" % uid)
+        self.logger.debug("fetching tweets for uid:%s" % uid)
         # Get last since_id
         if not since_id:
             since_id = "-1"
@@ -333,8 +327,9 @@ class _CrawlerWorker(threading.Thread):
             # update request quota information
             self.reqsleft = int(page.getheader("X-RateLimit-Remaining"))
         else:
-            self.log("uid `%s` failed in fetch_tweets. HTTP code: %s" %
-                     (uid, page.code))
+            self.logger.error(
+                    "uid `%s` failed in fetch_tweets. HTTP code: %s" %
+                    (uid, page.code))
             return page.code
         return 666
 
@@ -343,43 +338,16 @@ class _CrawlerWorker(threading.Thread):
         while True:
             try:
                 seed = self.idqueue.get()       # blocking get
-                print("thread gets: " + seed)
+                self.logger.debug("thread gets: " + seed)
                 if (seed == _CrawlerWorker.TERMINATE_SIGNAL):
-                    print("termination signal received!")
+                    self.logger.warning("termination signal received!")
                     self.idqueue.task_done()
                     break
-                print("thread gets: " + seed)
-                self.log("fetching \"%s\"" % seed)
+                self.logger.debug("fetching \"%s\"" % seed)
                 self.fetch(seed)
                 self.idqueue.task_done()
             except Exception as e:
-                self.log(str(e))
+                self.logger.error(str(e))
                 self.idqueue.task_done()
                 break
-        self.log("terminate signal received, closing thread")
-
-def usage():
-    print("""\nUsage: %s [manual parameters] <config file>\n
-            Contents in configuration file:
-*Values listed here are default values, used if parameter is unspecified
-*Can also be overwritten with parameters
-*ie) %s --seed_file=seedfile.txt config.txt
-
-seed_file=seedfile.txt\t[seed file]
-dir_log= log\t[disk location to write logs to]
-dir_cache= cache\t[disk location of crawl results]
-crawl_num_of_threads= 10\t[number of threads used for downloading]
-verbose = 1
-        """ % (sys.argv[0],sys.argv[0]))
-
-def main(argv=None):
-    crawler = Crawler("seedfile.txt", "log", "cache", 4, 1)
-    crawler.crawl()
-
-if __name__ == '__main__':
-    #the parameters and their default values
-    parameters = {"seed_file":"seedfile.txt", "dir_log":"log", "dir_cache":"cache", "crawl_num_of_threads":10,"verbose":1}
-    int_params = ["crawl_num_of_threads","verbose"]
-    conf = misc.parse_arguments(usage, parameters, int_params)
-    crawler = Crawler(**conf)
-    crawler.crawl()
+        self.logger.warning("terminate signal received, closing thread")

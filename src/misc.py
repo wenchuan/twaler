@@ -72,10 +72,10 @@ class timefunctions:
 
 class CacheAccessor():
     """Cache files writer/reader"""
-    def __init__(self, cache_dir, log):
+    def __init__(self, cache_dir, logger):
         self.cache_dir = cache_dir
         self.pseudoseconds = 0
-        self.log = log          # logging funtion
+        self.logger = logger
 
     def get_crawl_dir(self, basepath, uid, create=False, listname=None):
         """
@@ -144,7 +144,8 @@ class CacheAccessor():
             infiles = os.listdir(cache_path)
             return infiles
         except:
-            self.log("can't list contents of directory " + cache_path)
+            self.logger.warning("can not list contents of directory " +
+                    cache_path)
             return None
 
     def idqueue(self):

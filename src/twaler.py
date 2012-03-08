@@ -87,7 +87,8 @@ class Twaler:
                            self.config['db_database'], self.logger)
         stmt = 'DELETE FROM target_users'
         db.execute(stmt)
-        stmt = 'LOAD DATA LOCAL INFILE seed.lst INTO TABLE target_users'
+        # TODO still not working correctly
+        stmt = 'LOAD DATA LOCAL INFILE "seed.lst" INTO TABLE target_users'
         db.execute(stmt)
         # Get that list first
         self.crawl('seed.lst')
@@ -129,28 +130,25 @@ class Twaler:
         generator.generate()
 
     def crawl(self, seed):
-        '''Read seed file, download, process and load to database'''
-        # A time stamp universally identified the crawling instance
+        '''Read seed file, download, process and load to database
+        A time stamp universally identified the crawling instance'''
         timestamp = misc.timefunctions.datestamp()
-        # Set new parameters for crawling
-        # A folder under cache will be created with the timestamp
-        seed_cache_dir = os.path.join(self.dir_cache, timestamp)
-        self.configurations["seed_file"] = os.path.join(self.dir_seeds, seed)
-        self.configurations["dir_cache"] = seed_cache_dir
-        self.configurations["instance"] = timestamp
-        self.configurations["dir_log"] = os.path.join(seed_cache_dir, "log")
-        # crawl the given instance
-        self.logger.info('Crawling ' + seed)
-        crawler = crawl.Crawler(**self.configurations)
+        self.logger.info('Crawling file %s as %s' % (seed, timestamp))
+
+        cache_dir = os.path.join(self.dir_cache, timestamp)
+        seedfile = os.path.join(self.dir_seeds, seed)
+
+        # crawl seedfile and save files into cache_dir
+        crawler = crawl.Crawler(seedfile, cache_dir, self.config, self.logger)
         crawler.crawlloop()
         self.processAndLoad(timestamp)
+
         # Move seedfile out of seed directory
-        seedpath = os.path.join(self.dir_seeds, seed)
         cachepath = os.path.join(self.dir_cache, timestamp,
                                  "seed["+seed+"].txt")
         seeddonepath = os.path.join(self.dir_seedsdone, seed)
-        shutil.copy(seedpath, cachepath)
-        shutil.move(seedpath, seeddonepath)
+        shutil.copy(seedfile, cachepath)
+        shutil.move(seedfile, seeddonepath)
 
     def processAndLoad(self, timestamp):
         # A folder under cache will be created with the timestamp
