@@ -28,5 +28,5 @@
     "seed_lists": 1,
     "seed_per_file" : 5,
     "seed_limit" : 10,
-    "update_limit" : 0,
+    "update_limit" : 0
 }
