@@ -159,13 +159,13 @@ class CacheAccessor():
 
 class mysql_db():
     """Connector class for MySQL database"""
-    def __init__(self, host, user, password, db, log):
+    def __init__(self, host, user, password, db, logger):
         try:
             self.conn = mysql.connector.connect(host=host, user=user,
                                                 password=password, db=db)
             self.cursor = self.conn.cursor()
-            self.log = log
-            self.log("Connected to MySQL as " + user)
+            self.logger = logger
+            self.logger.debug("Connected to MySQL as " + user)
         except Exception as e:
             self.log("MySQL Connect Error:"+ str(e))
 
@@ -182,13 +182,13 @@ class mysql_db():
                 stmt = stmt[:-1]
             self.cursor.execute(stmt,values)
         except Exception as e:
-            self.log("MySQL Insert/Update Error:"+ str(e)  + "\n(stmt):" + stmt)
+            self.logger.error("MySQL Insert/Update Error:"+ str(e)  + "\n(stmt):" + stmt)
 
     def execute(self, stmt):
         try:
             self.cursor.execute(stmt)
         except Exception as e:
-            self.log("MySQL Execute Error:" + str(e) + "\n(stmt):" + stmt)
+            self.logger.error("MySQL Execute Error:" + str(e) + "\n(stmt):" + stmt)
 
     def __del__(self):
         self.conn.close()

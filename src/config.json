@@ -9,6 +9,9 @@
     "db_password" : "snorg321",
     "verbose" : 1,
 
+    "log_dir" : "log",
+    "log_name" : "twaler.log",
+
     "crawl_num_of_threads" : 4,
 
     "process_userinfo" : 1,

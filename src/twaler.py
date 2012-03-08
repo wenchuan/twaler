@@ -3,8 +3,9 @@ import os
 import shutil
 import sys
 import signal
-import multiprocessing
 import json
+import logging
+import logging.handlers
 
 import crawl
 import process_crawl
@@ -18,10 +19,37 @@ class Twaler:
     # TODO fix all these parameter passing diaster
     def __init__(self, dir_cache, dir_log, dir_seeds, dir_seedsdone,
                  **kwargs):
-        # load configurations from config.json
+        # Load configurations from config.json
+        #----------------
         fp = open('config.json')
         self.config = json.load(fp)
         fp.close()
+
+        # Setup logger
+        #----------------
+        formatter = logging.Formatter(
+                '%(asctime)-6s: %(funcName)s - %(filename)s:%(lineno)d - '
+                '%(levelname)s - %(message)s')
+        consoleLogger = logging.StreamHandler()
+        consoleLogger.setLevel(logging.INFO)
+        consoleLogger.setFormatter(formatter)
+        logging.getLogger('').addHandler(consoleLogger)
+        # Setup rotating log files
+        log_dir = self.config['log_dir']
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        log_name = os.path.join(log_dir, self.config['log_name'])
+        fileLogger = logging.handlers.RotatingFileHandler(
+                filename=log_name, maxBytes = 1024*1024,
+                backupCount = 50)
+        fileLogger.setLevel(logging.DEBUG)
+        fileLogger.setFormatter(formatter)
+        logging.getLogger('').addHandler(fileLogger)
+        self.logger = logging.getLogger('')
+        self.logger.setLevel(logging.DEBUG)
+
+        self.logger.debug('twaler started')
+
         self.name = "twaler"
         self.configurations = kwargs
         self.dir_seeds = dir_seeds
@@ -33,10 +61,6 @@ class Twaler:
         if not os.path.exists(dir_cache):
             os.makedirs(dir_cache)
         self.dir_log = dir_log
-        if kwargs['verbose']:
-            self.log = misc.Logger(self.name, dir_log).verbose_log
-        else:
-            self.log = misc.Logger(self.name, dir_log).log
 
     def twale(self):
         self.child = os.fork()              # create a child process
@@ -50,7 +74,7 @@ class Twaler:
         try:
             os.wait()
         except (KeyboardInterrupt, SystemExit):
-            self.log("Keyboard Interrupt Received")
+            self.logger.info("Keyboard Interrupt Received")
             os.kill(self.child, signal.SIGKILL)
         sys.exit()
 
@@ -60,7 +84,7 @@ class Twaler:
         db = misc.mysql_db(self.config['db_server'],
                            self.config['db_username'],
                            self.config['db_password'],
-                           self.config['db_database'], self.log)
+                           self.config['db_database'], self.logger)
         stmt = 'DELETE FROM target_users'
         db.execute(stmt)
         stmt = 'LOAD DATA LOCAL INFILE seed.lst INTO TABLE target_users'
@@ -85,14 +109,14 @@ class Twaler:
             seeds = os.listdir(self.dir_seeds)
             # Generate more if needed
             if not seeds:
-                self.log("Seed Folder Empty")
+                self.logger.debug("Seed folder empty")
                 #________________________________
                 #
-                # import pdb; pdb.set_trace()
+                import pdb; pdb.set_trace()
                 #
                 #________________________________
                 self.generateseeds()
-                self.log("Generate seeds complete")
+                self.logger.debug('Generate seeds complete')
                 seeds = os.listdir(self.dir_seeds)
             for seed in seeds:          # N.B. seed is a filename with seeds
                 self.crawl(seed)
@@ -116,7 +140,7 @@ class Twaler:
         self.configurations["instance"] = timestamp
         self.configurations["dir_log"] = os.path.join(seed_cache_dir, "log")
         # crawl the given instance
-        self.log("Crawling " + seed)
+        self.logger.info('Crawling ' + seed)
         crawler = crawl.Crawler(**self.configurations)
         crawler.crawlloop()
         self.processAndLoad(timestamp)
@@ -137,11 +161,11 @@ class Twaler:
         self.configurations["dir_processed"] = (
                 os.path.join(cache_dir, "processed_crawl"))
         # PROCESS
-        self.log("Processing instance " + timestamp)
+        self.logger.info("Processing instance " + timestamp)
         processor = process_crawl.Process_crawl(**self.configurations)
         processor.process_loop()
         # LOAD
-        self.log("Loading instance " + timestamp)
+        self.logger.info("Loading instance " + timestamp)
         loader = load_crawl.Load_crawl(**self.configurations)
         loader.load_loop()
 

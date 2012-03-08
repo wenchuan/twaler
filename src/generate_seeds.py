@@ -40,10 +40,8 @@ class Generator():
             self.log(str(e))
 
     def generate(self):
-        if (self.seed_userinfo or self.seed_tweets or self.seed_friends or
-            self.seed_listmemberships):
-            self.generate_newSeeds()
-            self.generate_updates()
+        self.generate_newSeeds()
+        self.generate_updates()
 
     def generate_newSeeds(self):
         try:
