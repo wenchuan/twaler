@@ -3,6 +3,7 @@ import re
 import os
 import sys
 import gzip
+import json
 import xml.dom.minidom
 from contextlib import closing
 
@@ -66,24 +67,24 @@ class Processor():
         self.logger.debug('processing ' + filename)
         # Open up downloaded file for reading
         with closing(gzip.open(filename, 'r')) as fin:
-            xmltxt = fin.read()
-            xmldom = xml.dom.minidom.parseString(xmltxt)
-            users = xmldom.getElementsByTagName('user')
-            for user in users:
-                try:
-                    user_name = gettext(getChildByName(user, 'name'))
-                    location = 'LA'
-                    description = 'some random text'
-                    followers_count = 321
-                    friends_count = 123
-                    status_count = 123
-                    url = 'fuck you'
-                    raw_created_at = '2000'
-                    created_at = timefunctions.xmlToSqlTime(raw_created_at)
-                    self.db.insert("users", (nid,user_name,location,description,url,followers_count,friends_count,status_count,created_at),{"user_name":user_name, "location": location, "description":description, "url":url, "followers_count": followers_count, "friends_count":friends_count, "status_count": status_count, "created_at":created_at})
-                except Exception as e:
-                    self.logger.error("Can't parse userinfo, exception: " +
-                            str(e))
+            try:
+                data = json.loads(fin.read().decode())
+                url = data['url']
+                if not url:
+                    url = ''
+                self.db.insert('users', (
+                    nid,
+                    data['name'],
+                    data['screen_name'],
+                    data['location'],
+                    data['description'],
+                    url,
+                    data['followers_count'],
+                    data['friends_count'],
+                    data['statuses_count'],
+                    timefunctions.jsonToSqlTime(data['created_at'])))
+            except Exception as e:
+                self.logger.error("Can't parse userinfo, error: " + str(e))
 
     def store_tweets(self, nid, filename):
         self.logger.debug('processing ' + filename)
@@ -105,10 +106,10 @@ class Processor():
                 files = os.listdir(dirpath)
 
                 for filename in files:
+                    # import pdb; pdb.set_trace()
                     filepath = os.path.join(dirpath, filename)
-                    if (filename[:18] == 'userinfo.xml.data.'):
+                    if filename.startswith('userinfo.json.data'):
                         self.store_userinfo(nid, filepath)
-
             except Exception as e:
                 self.logger.error('Error during processing user %s : %s' %
                         (nid, e))

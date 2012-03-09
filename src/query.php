@@ -16,13 +16,14 @@ if ($_GET['id']) {
   $query="SELECT * FROM users WHERE user_id=$id";
   $result=mysql_query($query);
   $name=mysql_result($result, 0, 'user_name');
+  $screen_name=mysql_result($result, 0, 'screen_name');
   $loc=mysql_result($result, 0, 'location');
   $desc=mysql_result($result, 0, 'description');
   $url=mysql_result($result, 0, 'url');
   $follower_cnt=mysql_result($result, 0, 'followers_count');
   $friend_cnt=mysql_result($result, 0, 'friends_count');
   $tweet_cnt=mysql_result($result, 0, 'status_count');
-  echo "<h2>$name</h2>";
+  echo "<h2>$name (@$screen_name)</h2>";
   echo "$desc<br>";
   echo "$loc<br>";
   echo "<a href=\"$url\">$url</a><br>";

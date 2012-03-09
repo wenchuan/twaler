@@ -22,10 +22,10 @@ class timefunctions:
         return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
     @staticmethod
-    def rssToSqlTime(dtstr):
+    def jsonToSqlTime(dtstr):
         # N.B. The time used here is GMT time!!
         # not all platforms support '%z' with strptime, manually parse it
-        dt = datetime.datetime.strptime(dtstr, "%a, %d %b %Y %H:%M:%S +0000")
+        dt = datetime.datetime.strptime(dtstr, "%a %b %d %H:%M:%S +0000 %Y")
         return dt.strftime("%Y-%m-%d %H:%M:%S")
 
     @staticmethod

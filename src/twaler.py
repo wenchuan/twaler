@@ -131,7 +131,6 @@ class Twaler:
         # crawl seedfile and save files into cache_dir
         crawler = crawl.Crawler(seedfile, cache_dir, self.config, self.logger)
         crawler.crawlloop()
-        import pdb; pdb.set_trace()
         self.processAndLoad(timestamp)
 
         # Move seedfile out of seed directory
@@ -150,6 +149,7 @@ class Twaler:
         processor = process_crawl.Processor(self.config, self.logger,
                 timestamp, cache_dir)
         processor.process_loop()
+        import pdb; pdb.set_trace()
         # LOAD
         self.logger.info("Loading instance " + timestamp)
         loader = load_crawl.Loader(self.config, self.logger)
