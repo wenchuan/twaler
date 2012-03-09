@@ -30,7 +30,6 @@ def getChildByName(dom, name):
 
 class Processor():
     def __init__(self, config, logger, instance, cache_dir):
-        self.name = 'processor'
         self.config = config
         self.logger = logger
         self.dir_cache = cache_dir

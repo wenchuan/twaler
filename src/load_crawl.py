@@ -4,7 +4,6 @@ import os
 
 class Loader():
     def __init__(self, config, logger):
-        self.name = "dbloader"
         self.config = config
         self.logger = logger
         self.prefix = ('mysql -u %s -p%s %s -e ' %

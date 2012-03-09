@@ -8,12 +8,10 @@ from misc import write_to_files
 
 class Generator():
     def __init__(self, config, logger):
+        self.config = config
+        self.logger = logger
+        dir_seeds = self.config['dir_seeds']
         try:
-            self.name = "generate_seeds"
-            self.config = config
-            self.logger = logger
-
-            dir_seeds = self.config['dir_seeds']
             if not os.path.exists(dir_seeds):
                 os.makedirs(dir_seeds)
             self.db = misc.mysql_db(self.config['db_server'],

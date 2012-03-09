@@ -23,7 +23,6 @@ class Crawler:
 
     """
     def __init__(self, seed_file, cache_dir, config, logger):
-        self.name = "Crawler"
         self.seed_file = seed_file
         self.config = config
         self.logger = logger

@@ -1,7 +1,5 @@
 #!/usr/local/bin/python3
 
-import getopt
-import sys
 import time
 import datetime
 import os
@@ -222,53 +220,3 @@ def write_to_files(seeds, file_prefix, id_per_file, seedtype='utf'):
         fp.write('%s\t%s\n' % (seedtype, user[0]))
         cnt += 1
     fp.close()
-
-# This garbage needs to be purged
-def parse_arguments(usage, parameters, int_params):
-    """Parses parameters from config.txt and manually override parameters
-    usage: displays usage information
-    parameters: the parameters of the component mapped with its default values
-    int_params: the parameters that are of integer/binary type
-
-    RETURNS a map of parameters along with their values
-    """
-    manual_parameters = []
-    for p in parameters:
-        manual_parameters.append(p + '=')
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "", manual_parameters)
-    except getopt.GetoptError as err:
-        # print help information and exit
-        print(str(err)) # will print something like "option -a not recognized"
-        usage()
-        sys.exit(2)
-    if(len(opts) == 0  and len(args) == 0):
-        usage()
-        sys.exit(2)
-    config = {}
-    #read in the config file
-    if(len(args) >= 1):
-        configFile = open(args[0],"r")
-        for line in configFile:
-            if line[0] == '#':
-                continue
-            param = line.split("=")
-            if len(param) < 2:
-                continue
-            key = param[0].strip()
-            value = param[1].strip()
-            config[key] = value
-        configFile.close()
-    #check for manual overwrite
-    for o,a in opts:
-        config[o[2:]] = a
-    #Use default values if configuration not specified
-    for p in parameters:
-        if p not in config:
-            config[p] = parameters[p]
-            print("Defaulting " + p + "= " + str(parameters[p]))
-
-    #Convert integer values
-    for arg in int_params:
-        config[arg] = int(config[arg])
-    return config
