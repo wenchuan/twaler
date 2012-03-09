@@ -33,7 +33,7 @@ class Loader():
         self.execute(stmt)
         # Insert/update to official table
         stmt = ("INSERT INTO %s SELECT * FROM temp.%s ON DUPLICATE KEY "
-                "UPDATE" % (table, table))
+                "UPDATE " % (table, table))
         for key in update_keys:
             stmt += "%s= temp.%s.%s,"%(key, table, key)
         stmt = stmt[:-1]        # wipe out the extra comma

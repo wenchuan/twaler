@@ -92,6 +92,19 @@ class Processor():
 
     def store_friends(self, nid, filename):
         self.logger.debug('processing ' + filename)
+        # Open up downloaded file for reading
+        with closing(gzip.open(filename, 'r')) as fin:
+            try:
+                data = json.loads(fin.read().decode())
+                ids = data['ids']
+                for fid in ids:
+                    self.db.insert('friends', (
+                        nid,
+                        fid,
+                        self.instance,
+                        self.instance))
+            except Exception as e:
+                self.logger.error("Can't parse userinfo, error: " + str(e))
 
     def process_loop(self):
         self.db.insert('crawl_instances', (self.instance,))
@@ -110,6 +123,8 @@ class Processor():
                     filepath = os.path.join(dirpath, filename)
                     if filename.startswith('userinfo.json.data'):
                         self.store_userinfo(nid, filepath)
+                    if filename.startswith('friends.json.data'):
+                        self.store_friends(nid, filepath)
             except Exception as e:
                 self.logger.error('Error during processing user %s : %s' %
                         (nid, e))
