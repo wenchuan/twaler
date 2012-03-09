@@ -34,9 +34,8 @@ CREATE TABLE friends (
 
 CREATE TABLE mentions (
 	tweet_id BIGINT UNSIGNED,
-	mentioned_name VARCHAR(100),
-	retweet BOOL,
-	UNIQUE (tweet_id, mentioned_name, retweet)
+	user_id BIGINT UNSIGNED,
+	UNIQUE (tweet_id, user_id)
 );
 
 CREATE TABLE urls (
@@ -45,7 +44,7 @@ CREATE TABLE urls (
 	UNIQUE (tweet_id, url)
 );
 
-CREATE TABLE hash_tags (
+CREATE TABLE hashtags (
 	tweet_id BIGINT UNSIGNED,
 	hash_tags VARCHAR(140),
 	UNIQUE (tweet_id, hash_tags)

@@ -65,8 +65,8 @@ class Loader():
                 self.dump("hashes",filepath)
             if (filename == 'crawl_instances.tsv'):
                 self.dump("crawl_instances",filepath)
-            if (filename == 'hash_tags.tsv'):
-                self.dump("hash_tags",filepath)
+            if (filename == 'hashtags.tsv'):
+                self.dump("hashtags",filepath)
             if (filename == 'friends.tsv'):
                 self.dump_and_update("friends",filepath,["date_last"])
             if (filename == 'users_update.tsv'):

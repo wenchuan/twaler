@@ -149,7 +149,6 @@ class Twaler:
         processor = process_crawl.Processor(self.config, self.logger,
                 timestamp, cache_dir)
         processor.process_loop()
-        import pdb; pdb.set_trace()
         # LOAD
         self.logger.info("Loading instance " + timestamp)
         loader = load_crawl.Loader(self.config, self.logger)

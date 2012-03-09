@@ -63,6 +63,18 @@ class Processor():
                         t['retweet_count'],
                         timefunctions.jsonToSqlTime(t['created_at']),
                         t['text']))
+                    for h in t['entities']['hashtags']:
+                        self.db.insert('hashtags', (
+                            tid,
+                            h['text']))
+                    for u in t['entities']['urls']:
+                        self.db.insert('urls', (
+                            tid,
+                            u['url']))
+                    for m in t['entities']['user_mentions']:
+                        self.db.insert('mentions', (
+                            tid,
+                            m['id']))
             except Exception as e:
                 self.logger.error("Can't parse userinfo, error: " + str(e))
 
