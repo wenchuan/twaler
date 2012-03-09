@@ -296,6 +296,7 @@ class _CrawlerWorker(threading.Thread):
         page = self.gethttpresponse(url, True)
         if (page):
             datagzipped = ((page.headers["Content-Encoding"] == 'gzip'))
+            import pdb; pdb.set_trace()
             if page.code == 200:        # save headers and data on success
                 headers = self.getrawheaders(page)
                 data = page.read()
