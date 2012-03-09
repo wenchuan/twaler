@@ -19,8 +19,8 @@ CREATE TABLE target_users (
 CREATE TABLE tweets (
 	tweet_id BIGINT UNSIGNED PRIMARY KEY,
 	user_id BIGINT UNSIGNED,
+    retweet_count INT UNSIGNED,
 	date TIMESTAMP DEFAULT 0, 
-  date_crawled TIMESTAMP DEFAULT 0,
 	text VARCHAR(140)
 );
 
