@@ -130,7 +130,7 @@ class CacheAccessor():
             pattern = re.escape(self.cache_dir) + "/\d+/\d+/\d+/(\d*)"
             m = re.match(pattern, filename)
             if m:
-                yield(m.group(1),filename)
+                yield(m.group(1), filename)
 
 
 class mysql_db():

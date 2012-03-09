@@ -7,7 +7,6 @@ import time
 import urllib.request
 import urllib.error
 import http.client
-import xml.dom.minidom 
 import base64
 import socket
 import threading
@@ -233,104 +232,79 @@ class _CrawlerWorker(threading.Thread):
         seed = seed.split("\t")
         # case A: type unspecified on line, assumed to be just an user_id
         if len(seed) < 2:
-            type = 'utf'                # the whole deal
+            types = 'utf'                # the whole deal
             data = seed[0]
         # case B: type is specified
         else:
-            type = seed[0]
-            if '*' in type:
-                type = 'utf'
+            types = seed[0]
+            if '*' in types:
+                types = 'utf'
             data = seed[1]
         # check for extra column separated by space
         fields = data.split(" ")
         uid = fields[0].strip()
         sid = None
-        # case C: extra column used to specify cursor or list_id
         if len(fields) > 1:
             sid = fields[1].strip()
         # perform the fetch
-        if _CrawlerWorker.CRAWL_USERINFO in type:
+        if _CrawlerWorker.CRAWL_USERINFO in types:
             self.fetch_userinfo(uid)
-        if _CrawlerWorker.CRAWL_FRIENDS in type:
+        if _CrawlerWorker.CRAWL_FRIENDS in types:
             self.fetch_friends(uid)
-        if _CrawlerWorker.CRAWL_TWEETS in type:
+        if _CrawlerWorker.CRAWL_TWEETS in types:
             self.fetch_tweets(uid)
 
     def fetch_userinfo(self, uid):
         self.logger.debug("fetching userinfo for uid:%s " % uid)
-        url = "http://api.twitter.com/1/users/show.xml?user_id=" + uid
+        url = "http://api.twitter.com/1/users/show.json?user_id=" + uid
         page = self.gethttpresponse(url)
         if (page.code == 200):          # save headers and data on success
             headers = self.getrawheaders(page)
             data = page.read()
-            self.cache("userinfo.xml", uid, str(headers), data)
-            self.reqsleft = int(page.getheader("X-RateLimit-Remaining"))
-            # XXX the problem with this is that clocks may be out of sync
-            # rate_limit_reset = page.getheader("X-RateLimit-Reset")
-            return page.code
+            self.cache("userinfo.json", uid, str(headers), data)
         else:                           # log problems if any
-            self.logger.error(
-                    "uid `%s` failed in fetch_userinfo. HTTP code: %s" %
-                     (uid, page.code))
-            return page.code
+            self.logger.error('fail fetching userinfo for %s with '
+                    'HTTP code %s' % (uid, page.code))
+        return page.code
 
     def fetch_friends(self, uid):
         """reads first page of friends (people uid follows), tries 5 times
         if it fails with a 5xx error and finally reads next page if one is
         available returns 0 on succes, other number on error"""
         self.logger.debug("fetching friends for uid:%s" % uid)
-        next_cursor = -1                # crawl the entire friend list
-        while(next_cursor != '0'):      # while friend list is not complete
-            url = ("http://api.twitter.com/1/friends/ids.xml?"
+        next_cursor = -1
+        while(next_cursor != 0):      # while friend list is not complete
+            url = ("http://api.twitter.com/1/friends/ids.json?"
                    "user_id=%s&cursor=%s" % (uid, next_cursor))
             page = self.gethttpresponse(url)
             if (page.code == 200):          # save header and data on success
                 headers = self.getrawheaders(page)
-                data = page.read()
-                # get the next cursor
-                # TODO: change XML to JSON
-                xmldom = xml.dom.minidom.parseString(data)
-                cursor_node = xmldom.getElementsByTagName("next_cursor")[0]
-                next_cursor = cursor_node.firstChild.data
-                self.cache("friends.xml", uid, str(headers), data)
-                # update request quota information
-                self.reqsleft = int(page.getheader("X-RateLimit-Remaining"))
-                # we're done? return success
-                if (next_cursor == '0'):
-                    return page.code
-                # got this page but we still have more? continue to next URL
+                raw_data = page.read()
+                data = json.loads(raw_data.decode())
+                next_cursor = data['next_cursor']
+                self.cache('friends.json', uid, str(headers), raw_data)
             else:
-                self.logger.error(
-                        "uid `%s` failed in fetch_friends. HTTP code: %s" %
-                        (uid, page.code))
+                self.logger.error('fail fetching friends for %s with '
+                        'HTTP code %s' % (uid, page.code))
                 return page.code
-        # we should never get here
-        return 666
+        return page.code
 
-    def fetch_tweets(self, uid, since_id=None):
+    def fetch_tweets(self, uid):
         self.logger.debug("fetching tweets for uid:%s" % uid)
-        # Get last since_id
-        if not since_id:
-            since_id = "-1"
-        # XXX ??? rss ???
-        url = ("http://twitter.com/statuses/user_timeline.rss?"
-               "user_id=%s&since_id=%s&count=200" % (uid, since_id))
+        url = ("http://api.twitter.com/1/statuses/user_timeline.json?"
+                "include_entities=t&trim_user=t&user_id=%s&count=200" % uid)
         page = self.gethttpresponse(url, True)
         if (page):
             datagzipped = ((page.headers["Content-Encoding"] == 'gzip'))
             if page.code == 200:        # save headers and data on success
                 headers = self.getrawheaders(page)
                 data = page.read()
-                self.cache("tweets.rss", uid, str(headers), data,
+                self.cache("tweets.json", uid, str(headers), data,
                            datagzipped=datagzipped)
-            # update request quota information
-            self.reqsleft = int(page.getheader("X-RateLimit-Remaining"))
         else:
-            self.logger.error(
-                    "uid `%s` failed in fetch_tweets. HTTP code: %s" %
-                    (uid, page.code))
-            return page.code
-        return 666
+            self.logger.error('fail fetching tweets for %s with '
+                    'HTTP code %s' % (uid, page.code))
+        return page.code
 
     def run(self):
         # get seed from queue and crawl until terminating signal encountered
@@ -339,7 +313,7 @@ class _CrawlerWorker(threading.Thread):
                 seed = self.idqueue.get()       # blocking get
                 self.logger.debug("thread gets: " + seed)
                 if (seed == _CrawlerWorker.TERMINATE_SIGNAL):
-                    self.logger.warning("termination signal received!")
+                    self.logger.debug("termination signal received!")
                     self.idqueue.task_done()
                     break
                 self.logger.debug("fetching \"%s\"" % seed)
@@ -349,4 +323,4 @@ class _CrawlerWorker(threading.Thread):
                 self.logger.error(str(e))
                 self.idqueue.task_done()
                 break
-        self.logger.warning("terminate signal received, closing thread")
+        self.logger.debug("terminate signal received, closing thread")
