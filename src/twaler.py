@@ -87,8 +87,9 @@ class Twaler:
                            self.config['db_database'], self.logger)
         stmt = 'DELETE FROM target_users'
         db.execute(stmt)
-        # TODO still not working correctly
-        stmt = 'LOAD DATA LOCAL INFILE "seed.lst" INTO TABLE target_users'
+        # TODO still have problem
+        stmt = ('LOAD DATA LOCAL INFILE "seed.lst" INTO TABLE target_users '
+                'FIELDS TERMINATED BY \"\\t\" LINES TERMINATED BY \"\\n\"')
         db.execute(stmt)
         # Get that list first
         self.crawl('seed.lst')
@@ -160,7 +161,9 @@ class Twaler:
                 os.path.join(cache_dir, "processed_crawl"))
         # PROCESS
         self.logger.info("Processing instance " + timestamp)
-        processor = process_crawl.Process_crawl(**self.configurations)
+        processor = process_crawl.Processor(self.config, self.logger,
+                timestamp, cache_dir)
+        # processor = process_crawl.Process_crawl(**self.configurations)
         processor.process_loop()
         # LOAD
         self.logger.info("Loading instance " + timestamp)

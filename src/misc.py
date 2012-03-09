@@ -61,8 +61,7 @@ class timefunctions:
     def xmlToSqlTime(dtstr):
         # N.B. The time used here is GMT time!!
         # not all platforms support '%z' with strptime, manually parse it
-        dt = datetime.datetime.strptime(dtstr, "%a %b %d %H:%M:%S +0000 %Y")
-        return dt.strftime("%Y-%m-%d %H:%M:%S")
+        return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
     @staticmethod
     def unixToSqlTime(dtstr):
@@ -198,14 +197,15 @@ class mysql_db():
 class file_db():
     """Class to write to file"""
     """Opens a table of filestreams and writes to them until close"""
-    def __init__(self,dir_file,log):
+    def __init__(self, dir_file, logger):
         try:
             self.dir_file = dir_file
-            self.log = log
-            self.log("Writing output files to directory " + self.dir_file)
+            self.logger = logger
+            self.logger.debug("Writing output files to directory " +
+                    self.dir_file)
             self.fileStream = {}
         except Exception as e:
-            self.log("File Error:"+ str(e))
+            self.logger.erro("File Error:"+ str(e))
 
     def insert(self, table, values, updates=None):
         try:
@@ -213,7 +213,7 @@ class file_db():
                 self.fileStream[table] = open(os.path.join(self.dir_file, table+".tsv"), "w")
             print(*values, sep='\t', end='\n', file=self.fileStream[table])
         except Exception as e:
-            self.log("File write error:"+ str(e))
+            self.logger.error("File write error:"+ str(e))
 
     def __del__(self):
         for table in self.fileStream:
