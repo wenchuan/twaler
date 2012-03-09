@@ -154,21 +154,16 @@ class Twaler:
     def processAndLoad(self, timestamp):
         # A folder under cache will be created with the timestamp
         cache_dir = os.path.join(self.dir_cache, timestamp)
-        self.configurations["dir_cache"] = cache_dir
-        self.configurations["instance"] = timestamp
-        self.configurations["dir_log"] = os.path.join(cache_dir, "log")
-        self.configurations["dir_processed"] = (
-                os.path.join(cache_dir, "processed_crawl"))
+        processed_dir = os.path.join(cache_dir, "processed_crawl")
         # PROCESS
         self.logger.info("Processing instance " + timestamp)
         processor = process_crawl.Processor(self.config, self.logger,
                 timestamp, cache_dir)
-        # processor = process_crawl.Process_crawl(**self.configurations)
         processor.process_loop()
         # LOAD
         self.logger.info("Loading instance " + timestamp)
-        loader = load_crawl.Load_crawl(**self.configurations)
-        loader.load_loop()
+        loader = load_crawl.Loader(self.config, self.logger)
+        loader.load(processed_dir)
 
 
 def usage():

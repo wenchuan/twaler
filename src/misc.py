@@ -11,28 +11,6 @@ import mysql.connector
 
 from contextlib import closing
 
-class Logger:
-    """The class that handles all the logging"""
-    def __init__(self, name, dir_log):
-        self.name = name
-        if not os.path.exists(dir_log):
-            os.makedirs(dir_log)
-        logname = "%s.%s.error.log" % (self.name, timefunctions.datestamp())
-        logpath = os.path.join(dir_log, logname)
-        self.errorlog = open(logpath, 'w')
-
-    def log(self, msg):
-        msg = "[%s] %s: %s" % (self.name, timefunctions.datestamp(), msg)
-        self.errorlog.write(msg + "\n")
-
-    def verbose_log(self, msg):
-        msg = "[%s] %s: %s" % (self.name, timefunctions.datestamp(), msg)
-        print(msg)
-        self.errorlog.write(msg + "\n")
-
-    def __del__(self):
-        self.errorlog.close()
-
 
 class timefunctions:
     """Functions that handle time format conversions"""

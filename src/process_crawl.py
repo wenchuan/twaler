@@ -7,7 +7,6 @@ import xml.dom.minidom
 from contextlib import closing
 
 from misc import timefunctions
-from misc import Logger
 from misc import CacheAccessor
 from misc import mysql_db
 from misc import file_db
