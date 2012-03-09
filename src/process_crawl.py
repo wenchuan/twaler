@@ -119,7 +119,6 @@ class Processor():
                 files = os.listdir(dirpath)
 
                 for filename in files:
-                    # import pdb; pdb.set_trace()
                     filepath = os.path.join(dirpath, filename)
                     if filename.startswith('userinfo.json.data'):
                         self.store_userinfo(nid, filepath)
