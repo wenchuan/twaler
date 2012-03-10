@@ -1,5 +1,4 @@
-#!/usr/local/bin/python2.6
-
+#!/usr/bin/python2.6
 from __future__ import print_function
 
 import time

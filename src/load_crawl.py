@@ -1,6 +1,5 @@
-#!/usr/local/bin/python3
+#!/usr/bin/python2.6
 import os
-
 
 class Loader():
     def __init__(self, config, logger):
