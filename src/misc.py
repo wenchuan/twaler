@@ -1,11 +1,14 @@
-#!/usr/local/bin/python3
+#!/usr/local/bin/python2.6
+
+from __future__ import print_function
 
 import time
 import datetime
 import os
 import gzip
 import re
-import mysql.connector
+import codecs
+import MySQLdb
 
 from contextlib import closing
 
@@ -137,8 +140,7 @@ class mysql_db():
     """Connector class for MySQL database"""
     def __init__(self, host, user, password, db, logger):
         try:
-            self.conn = mysql.connector.connect(host=host, user=user,
-                                                password=password, db=db)
+            self.conn = MySQLdb.connect(host, user, password, db)
             self.cursor = self.conn.cursor()
             self.logger = logger
             self.logger.debug("Connected to MySQL as " + user)
@@ -156,7 +158,7 @@ class mysql_db():
                 for key in updates:
                     stmt += key + "='" + updates[key] + "',"
                 stmt = stmt[:-1]
-            self.cursor.execute(stmt,values)
+            self.cursor.execute(stmt, values)
         except Exception as e:
             self.logger.error("MySQL Insert/Update Error:"+ str(e)  + "\n(stmt):" + stmt)
 
@@ -186,7 +188,9 @@ class file_db():
     def insert(self, table, values, updates=None):
         try:
             if table not in self.fileStream:
-                self.fileStream[table] = open(os.path.join(self.dir_file, table+".tsv"), "w")
+                self.fileStream[table] = codecs.open(
+                        os.path.join(self.dir_file, table+".tsv"), "w",
+                        encoding='utf-8')
             print(*values, sep='\t', end='\n', file=self.fileStream[table])
         except Exception as e:
             self.logger.error("File write error:"+ str(e))

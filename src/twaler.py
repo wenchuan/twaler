@@ -106,7 +106,7 @@ class Twaler:
                 self.logger.debug("Seed folder empty")
                 #________________________________
                 #
-                # import pdb; pdb.set_trace()
+                import pdb; pdb.set_trace()
                 #
                 #________________________________
                 self.generateseeds()

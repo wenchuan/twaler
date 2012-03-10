@@ -1,6 +1,6 @@
 all:
 	cp seed.lst seeds
-	python3 twaler.py
+	python2.6 twaler.py
 
 quota:
 	curl http://twitter.com/account/rate_limit_status.json
