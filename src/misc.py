@@ -54,24 +54,21 @@ class CacheAccessor():
         self.pseudoseconds = 0
         self.logger = logger
 
-    def get_crawl_dir(self, basepath, uid, create=False, listname=None):
+    def get_crawl_dir(self, basepath, uid, create=False):
         """
         Return and create (if needed), the path associated with this user id
         """
         uid = uid.zfill(3)
         cache_path = os.path.join(basepath, uid[-1], uid[-2], uid[-3], uid)
-        if listname:
-            cache_path = os.path.join(cache_path, "lists", listname)
         if not os.path.exists(cache_path) and create:
             os.makedirs(cache_path)
         return cache_path
 
-    def get_cache_dir(self, uid, create=False, listname=None):
+    def get_cache_dir(self, uid, create=False):
         """
         Return and create (if needed), the path associated with this user id
         """
-        return self.get_crawl_dir(self.cache_dir, uid, create=create,
-                                  listname=listname)
+        return self.get_crawl_dir(self.cache_dir, uid, create=create)
 
     def check_cache(self, uid):
         """
@@ -85,20 +82,16 @@ class CacheAccessor():
                 return id
         return -1
 
-    def store_in_cache(self, request_type, uid, header, data,
-                       listname=None, datagzipped=False):
-        """write http headers and data to the user specific directory
+    def store_in_cache(self, request_type, uid, data, datagzipped=False):
+        """write http data to the user specific directory
            datagzipped -  data is already gzipped"""
         #Get user specific directory of his files
-        cache_path = self.get_cache_dir(uid, create=True, listname=listname)
+        cache_path = self.get_cache_dir(uid, create=True)
         #form cache file base name
         #we're too fast, we need more differentiation
         self.pseudoseconds = (self.pseudoseconds + 1) % 100
         now = timefunctions.datestamp() + (".%03d" % self.pseudoseconds)
         cache_file = os.path.join(cache_path, request_type + ".%s." + now + ".gz")
-        #write headers
-        with closing(gzip.open(cache_file % "headers", "w")) as fout:
-            fout.write(str.encode(header))
         #write data
         #data is already gzipped:
         if datagzipped:

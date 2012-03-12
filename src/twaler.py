@@ -57,8 +57,8 @@ class Twaler:
         self.logger.debug('twaler started')
         self.child = os.fork()              # create a child process
         if self.child == 0:
-            # self.twalerloop()               # child works, father watches
-            self.watchlist()
+            self.twalerloop()               # child works, father watches
+            #self.watchlist()
         else:
             self.watch()
 
@@ -129,8 +129,8 @@ class Twaler:
         seedfile = os.path.join(self.config['dir_seeds'], seed)
 
         # crawl seedfile and save files into cache_dir
-        crawler = crawl.Crawler(seedfile, cache_dir, self.config, self.logger)
-        crawler.crawlloop()
+        crawler = crawl.Crawler(self.config, self.logger)
+        crawler.crawlloop(seedfile, cache_dir)
         self.processAndLoad(timestamp)
 
         # Move seedfile out of seed directory

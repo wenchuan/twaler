@@ -1,11 +1,9 @@
 #!/usr/bin/python2.6
 from __future__ import with_statement
-
 import os
 import sys
 import time
-import urllib
-import httplib
+import urllib2
 import base64
 import socket
 import threading
@@ -20,45 +18,25 @@ class Crawler:
      Generates worker threads to crawl through the seeds directory
 
     """
-    def __init__(self, seed_file, cache_dir, config, logger):
-        self.seed_file = seed_file
+    def __init__(self, config, logger):
         self.config = config
         self.logger = logger
-        self.dir_cache = cache_dir
-        if not os.path.exists(self.dir_cache):
-            os.makedirs(self.dir_cache)
         self.idqueue = Queue.Queue(0)
 
-    def crawl(self):
-        """Crawl and watch"""
-        # two hackish functions to circumevent thread termination
-        self.child = os.fork()
-        if self.child == 0:
-            self.crawlloop()    # child thread runs crawlloop
-        else:
-            self.watch()        # parent thread waits for interrupt signals
-
-    def watch(self):
-        """Wait for interrupt"""
-        try:
-            os.wait()
-        except (KeyboardInterrupt, SystemExit):
-            self.logger.warning("Keyboard Interrupt Received")
-            os.kill(self.child, signal.SIGKILL)
-        sys.exit()
-
-    def crawlloop(self):
-        """Main crawl loop"""
-        self.workers = []       # set up workers
+    def crawlloop(self, seed_file, cache_dir):
+        seed_file = seed_file
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+        workers = []       # set up workers
         for i in range(self.config['crawl_num_of_threads']):
-            worker = _CrawlerWorker(self.idqueue, self.logger, self.dir_cache)
+            worker = _CrawlerWorker(self.idqueue, self.logger, cache_dir)
             worker.setName("Worker " + str(i))
-            self.workers.append(worker)
+            workers.append(worker)
             worker.start()
         try:
             # read seed file and crawl
-            seedFileStream = open(os.path.join(self.seed_file),"r")
-            self.logger.info("Crawling " + self.seed_file)
+            seedFileStream = open(os.path.join(seed_file),"r")
+            self.logger.info("Crawling " + seed_file)
             while True:
                 line = seedFileStream.readline()
                 if not line:
@@ -68,163 +46,105 @@ class Crawler:
                     break
                 self.idqueue.put(seed)  # put seeds on queue
             self.idqueue.join()         # block until all seeds are processed
-            self.logger.info("File " + self.seed_file + " completed")
+            self.logger.info("File " + seed_file + " completed")
             seedFileStream.close()
         except Exception as e:
             self.logger.error(str(e))
-        for th in self.workers:         # send terminating signals to workers
+        for th in workers:         # send terminating signals to workers
             self.idqueue.put(_CrawlerWorker.TERMINATE_SIGNAL)
-        for th in self.workers:         # wait for all workers to return
+        for th in workers:         # wait for all workers to return
             th.join()
-        self.logger.debug("Exited Successfully")
+        self.logger.debug("crawl loop exit successfully")
 
 
 class _CrawlerWorker(threading.Thread):
     """ _CrawlerWorker represens a worker that crawl and save info"""
-    workerLock = threading.Lock()
-    CRAWL_USERINFO = "u"
-    CRAWL_TWEETS = "t"
-    CRAWL_FRIENDS = "f"
-    TERMINATE_SIGNAL = "TERMINATE"
+    CRAWL_USERINFO = 'u'
+    CRAWL_TWEETS = 't'
+    CRAWL_FRIENDS = 'f'
+    TERMINATE_SIGNAL = 'TERMINATE'
 
     def __init__(self, idqueue, logger, cachedir):
         threading.Thread.__init__(self)
         self.logger = logger
         self.cache_accessor = misc.CacheAccessor(cachedir, self.logger)
-        # Twitter username and password is required for some requests
-        self.username = "snorguser"
-        self.password = "snorg321"
-        self.pseudoseconds = 0              # XXX ???
         self.idqueue = idqueue
 
-    def getrawheaders(self, page):
-        """Dumps header content into a single string"""
-        return "\r\n".join([(i + ": " + j) for i,j in page.getheaders()])
-
-    def getconnection(self):
-        """Return the cached HTTP connection"""
-        try:
-            if (self.twitter_connection):
-                return self.twitter_connection
-        except:
-            pass
-        self.twitter_connection = httplib.HTTPConnection("twitter.com:80")
-        self.twitter_connection.connect()
-        return self.twitter_connection
-
-    def packauth(self, username, password):
-        userpass = "%s:%s" % (username, password)
-        base64string = base64.encodebytes(userpass.encode('utf8'))[:-1]
-        auth = "Basic %s" % base64string.decode('utf8')
-        return auth
-
-    def gethttpresponse_auth(self, url, username=None,
-                             password=None, datagzipped=False):
-        """Get http response for url with authentication"""
-        response = None
-        for attempt in range(9):# try 9 times
-            try:                # try to get a connection and do the request
-                headers = {}
-                headers["Connection"]="Keep-Alive"
-                if (datagzipped):               # accept gzipped data
-                    headers['Accept-encoding']='gzip'
-                if (username and password):     # use auth info if given
-                    auth = self.packauth(username,password)
-                    headers["Authorization"] = auth
-                connection = self.getconnection()
-                connection.request("GET", url, headers=headers)
-                response = connection.getresponse()
-                if (response.status == 200):
-                    return response
-                elif (response.status == 302):
-                    self.logger.error("302 received\n" +
-                            self.getrawheaders(response))
-                    raise Exception("redirection response")
-                elif (response.status == 502):
-                    self.logger.warning("502, connection error, "
-                            "sleeping and retrying")
-                    time.sleep(2)
-                    self.twitter_connection = None
-                # 400 is the code that twitter uses when your out of quota
-                elif (response.status == 400):
-                    while (True):
-                        quota = self.getrequestquota()
-                        if (quota > 0):
-                            time.sleep(2)
-                            break
-                        self.logger.info("400, request quota: %d. Sleeping "
-                                "10 more minutes and checking again" % quota)
-                        time.sleep(10 * 60)
-                else:
-                    self.logger.warning("response code %d, sleeping and retrying"
-                            % response.status)
-                    time.sleep(2)
-                    self.twitter_connection = None
-            except Exception as e:
-                self.logger.error("exception caught: " + str(e))
-                time.sleep(10)
-        return response
-
     def gethttpresponse(self, url, datagzipped=False):
-        return self.gethttpresponse_auth(url, None, None, datagzipped)
+        """Get http response for url, ignore the header and return a
+        pair consists of the content and whether the content is gzipped"""
+        response = None
+        request = urllib2.Request(url)
+        if datagzipped:
+            request.add_header('Accept-encoding', 'gzip')
+        for attempt in xrange(9):
+            try:
+                response = urllib2.urlopen(request)
+                headers = response.headers
+                if response.code == 200:
+                    gzipped = headers.getheader('content-encoding')
+                    return (response.read(), gzipped)
+                quota = int(headers.getheader('x-ratelimit-remaining'))
+                if quota == 0:
+                    self.logger.info("400, request quota: %d. Sleeping "
+                                "10 more minutes and checking again" % quota)
+                    time.sleep(10 * 60)
+                if quota < 50:
+                    self.logger.info("API quota running low: %s" % quota)
+            except urllib2.HTTPError as e:
+                self.logger.error("HTTPError while fetching %s %s: %s" %
+                        (url, e.code, e))
+                time.sleep(10)
+            except urllib2.URLError as e:
+                self.logger.error("URLError while fetching %s %s: %s" %
+                        (url, e.reason, e))
+                time.sleep(10)
+        return (None, None)
 
     def getrequestquota(self):
         """Return the number of requests we have left"""
         url = "http://twitter.com/account/rate_limit_status.json"
-        for attempt in range(10):   # make 10 attempts, stop if failed
+        for attempt in xrange(5):   # make 5 attempts, stop if failed
             # Try and get rate limit
             try:
-                page = urllib.urlopen(url)
+                page = urllib2.urlopen(url)
                 if page.code == 200:
                     info = json.loads(page.read().decode())
                     return info['remaining_hits']
-                #Request returned a bad code
-                else:
-                    self.logger.info("rate limit status request returned: %d" %
-                            page.code);
-            #Request caused an exception
+                # Request returned a bad code
+                self.logger.warning("rate limit status request returned: "
+                        "%d %s" % (page.code, page.msg));
+            # Request caused an exception
             except Exception as e:
                 self.logger.error("rate limit request failed. error %s"
                         % str(e))
             self.logger.info("rate limit request failed")
-            time.sleep(60)
+            time.sleep(10)
+        # no response for 5 times, return zero
         return 0
 
-    def cache(self, request_type, uid, header, data,
-              listname=None, datagzipped=False):
-        self.cache_accessor.store_in_cache(request_type, uid, header, data,
-                                           listname, datagzipped)
+    def cache(self, request_type, uid, data, datagzipped=False):
+        self.cache_accessor.store_in_cache(request_type, uid, data,
+                                           datagzipped)
         return
 
     def fetch(self, seed):
         # check rate limit, sleep if no quota
-        while (True):
-            rq = self.getrequestquota()
-            if (rq > 0):
-                break
-            self.logger.info(
-                    "%s Request Quota: %d, sleeping for another 15 minutes" %
-                    misc.timefunctions.datestamp(), rq)
-            time.sleep(60 * 15)
+        while (self.getrequestquota() == 0):
+            self.logger.info('API limit reached, retry after 15 mins')
+            time.sleep(15 * 60)
         # parse the seed line
-        seed = seed.split("\t")
-        # case A: type unspecified on line, assumed to be just an user_id
+        seed = seed.split()
+        # Type unspecified on line, assumed to be user_id
         if len(seed) < 2:
-            types = 'utf'                # the whole deal
-            data = seed[0]
-        # case B: type is specified
+            types = 'utf'
+            uid = seed[0]
         else:
             types = seed[0]
             if '*' in types:
                 types = 'utf'
-            data = seed[1]
-        # check for extra column separated by space
-        fields = data.split(" ")
-        uid = fields[0].strip()
-        sid = None
-        if len(fields) > 1:
-            sid = fields[1].strip()
-        # perform the fetch
+            uid = seed[1]
+        # download info based on type
         if _CrawlerWorker.CRAWL_USERINFO in types:
             self.fetch_userinfo(uid)
         if _CrawlerWorker.CRAWL_FRIENDS in types:
@@ -233,56 +153,34 @@ class _CrawlerWorker(threading.Thread):
             self.fetch_tweets(uid)
 
     def fetch_userinfo(self, uid):
-        self.logger.debug("fetching userinfo for uid:%s " % uid)
+        self.logger.debug("start fetching userinfo for uid:%s " % uid)
         url = "http://api.twitter.com/1/users/show.json?user_id=" + uid
-        page = self.gethttpresponse(url)
-        if (page.status == 200):          # save headers and data on success
-            headers = self.getrawheaders(page)
-            data = page.read()
-            self.cache("userinfo.json", uid, str(headers), data)
-        else:                           # log problems if any
-            self.logger.error('fail fetching userinfo for %s with '
-                    'HTTP code %s' % (uid, page.status))
-        return page.status
+        (page, gzipped) = self.gethttpresponse(url)
+        self.cache("userinfo.json", uid, page, gzipped)
+        self.logger.debug("fetched userinfo for uid:%s " % uid)
 
     def fetch_friends(self, uid):
         """reads first page of friends (people uid follows), tries 5 times
         if it fails with a 5xx error and finally reads next page if one is
         available returns 0 on succes, other number on error"""
-        self.logger.debug("fetching friends for uid:%s" % uid)
+        self.logger.debug("start fetching friends for uid:%s" % uid)
         next_cursor = -1
         while(next_cursor != 0):      # while friend list is not complete
             url = ("http://api.twitter.com/1/friends/ids.json?"
                    "user_id=%s&cursor=%s" % (uid, next_cursor))
-            page = self.gethttpresponse(url)
-            if (page.status == 200):          # save header and data on success
-                headers = self.getrawheaders(page)
-                raw_data = page.read()
-                data = json.loads(raw_data.decode())
-                next_cursor = data['next_cursor']
-                self.cache('friends.json', uid, str(headers), raw_data)
-            else:
-                self.logger.error('fail fetching friends for %s with '
-                        'HTTP code %s' % (uid, page.status))
-                return page.status
-        return page.status
+            (page, gzipped) = self.gethttpresponse(url)
+            data = json.loads(page.decode())
+            next_cursor = data['next_cursor']
+            self.cache('friends.json', uid, page, gzipped)
+        self.logger.debug("fetched friends for uid:%s" % uid)
 
     def fetch_tweets(self, uid):
-        self.logger.debug("fetching tweets for uid:%s" % uid)
+        self.logger.debug("start fetching tweets for uid:%s" % uid)
         url = ("http://api.twitter.com/1/statuses/user_timeline.json?"
                 "include_entities=t&trim_user=t&user_id=%s&count=200" % uid)
-        page = self.gethttpresponse(url, True)
-        if (page):
-            datagzipped = (page.getheader('content-encoding') == 'gzip')
-            if page.status == 200:        # save headers and data on success
-                headers = self.getrawheaders(page)
-                data = page.read()
-                self.cache("tweets.json", uid, str(headers), data,
-                           datagzipped=datagzipped)
-        else:
-            self.logger.error('fail fetching tweets for %s with '
-                    'HTTP code %s' % (uid, page.status))
-        return page.status
+        (page, gzipped) = self.gethttpresponse(url, True)
+        self.cache("tweets.json", uid, page, gzipped)
+        self.logger.debug("fetched tweets for uid:%s" % uid)
 
     def run(self):
         # get seed from queue and crawl until terminating signal encountered
@@ -291,10 +189,8 @@ class _CrawlerWorker(threading.Thread):
                 seed = self.idqueue.get()       # blocking get
                 self.logger.debug("thread gets: " + seed)
                 if (seed == _CrawlerWorker.TERMINATE_SIGNAL):
-                    self.logger.debug("termination signal received!")
                     self.idqueue.task_done()
                     break
-                self.logger.debug("fetching \"%s\"" % seed)
                 self.fetch(seed)
                 self.idqueue.task_done()
             except Exception as e:
