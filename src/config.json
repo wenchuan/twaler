@@ -13,6 +13,7 @@
     "log_name" : "twaler.log",
 
     "crawl_num_of_threads" : 2,
+    "crawl_retry_gap" : 3,
 
     "process_userinfo" : 1,
     "process_tweets" : 1,
