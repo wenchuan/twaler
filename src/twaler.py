@@ -53,8 +53,10 @@ class Twaler:
         if not os.path.exists(dir_cache):
             os.makedirs(dir_cache)
 
-        self.crawler = crawl.Crawler(self.config, self.logger)
         self.generator = generate_seeds.Generator(self.config, self.logger)
+        self.crawler = crawl.Crawler(self.config, self.logger)
+        self.processor = process_crawl.Processor(self.config, self.logger)
+        self.loader = load_crawl.Loader(self.config, self.logger)
 
     def twale(self):
         self.logger.debug('twaler started')
@@ -133,15 +135,12 @@ class Twaler:
 
         # Process
         self.logger.info("Processing instance " + timestamp)
-        processor = process_crawl.Processor(self.config, self.logger,
-                timestamp, cache_dir)
-        processor.process()
+        self.processor.process(timestamp, cache_dir)
         self.logger.info("Processing instance %s COMPLETE" % timestamp)
 
         # Load
         self.logger.info("Loading instance " + timestamp)
-        loader = load_crawl.Loader(self.config, self.logger)
-        loader.load(processed_dir)
+        self.loader.load(processed_dir)
         self.logger.info("Loading instance %s COMPLETE" % timestamp)
 
         # Move seedfile out of seed directory

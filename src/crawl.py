@@ -25,7 +25,8 @@ class Crawler:
             os.makedirs(cache_dir)
         workers = []       # set up workers
         for i in range(self.config['crawl_num_of_threads']):
-            worker = _CrawlerWorker(self.idqueue, self.logger, cache_dir)
+            worker = _CrawlerWorker(self.idqueue, self.config,
+                    self.logger, cache_dir)
             worker.setName("Worker " + str(i))
             workers.append(worker)
             worker.start()
@@ -60,8 +61,9 @@ class _CrawlerWorker(threading.Thread):
     CRAWL_FRIENDS = 'f'
     TERMINATE_SIGNAL = 'TERMINATE'
 
-    def __init__(self, idqueue, logger, cachedir):
+    def __init__(self, idqueue, config, logger, cachedir):
         threading.Thread.__init__(self)
+        self.config = config
         self.logger = logger
         self.cache_accessor = misc.CacheAccessor(cachedir, self.logger)
         self.idqueue = idqueue

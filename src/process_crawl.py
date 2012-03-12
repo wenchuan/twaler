@@ -12,18 +12,49 @@ from misc import mysql_db
 from misc import file_db
 
 class Processor():
-    def __init__(self, config, logger, instance, cache_dir):
+    def __init__(self, config, logger):
         self.config = config
         self.logger = logger
-        self.dir_cache = cache_dir
 
+    def process(self, instance, cache_dir):
         self.instance = timefunctions.instanceToSqlTime(instance)
-        self.cache_accessor = CacheAccessor(self.dir_cache, self.logger)
-
+        self.cache_accessor = CacheAccessor(cache_dir, self.logger)
         dir_processed = os.path.join(cache_dir, 'processed_crawl')
         if not os.path.exists(dir_processed):
             os.makedirs(dir_processed)
         self.db = file_db(dir_processed, self.logger)
+        # Go through every single id under the cache folder
+        for ids in self.cache_accessor.idqueue():
+            try:
+                update_userinfo = ''
+                update_friends = ''
+                update_tweets = ''
+
+                nid = ids[0]
+                dirpath = ids[1]
+                files = os.listdir(dirpath)
+
+                for filename in files:
+                    filepath = os.path.join(dirpath, filename)
+                    if filename.startswith('userinfo.json.data'):
+                        self.store_userinfo(nid, filepath)
+                        update_userinfo = self.instance
+                    if filename.startswith('friends.json.data'):
+                        self.store_friends(nid, filepath)
+                        update_friends = self.instance
+                    if filename.startswith('tweets.json.data'):
+                        self.store_tweets(nid, filepath)
+                        update_tweets = self.instance
+                self.db.insert('users_update', (
+                    nid,
+                    update_userinfo,
+                    update_tweets,
+                    update_friends))
+            except Exception as e:
+                self.logger.error('Error during processing user %s : %s' %
+                        (nid, e))
+        self.db.__del__()
+        self.logger.debug('processing complete')
 
     def store_userinfo(self, nid, filename):
         '''put them in cache'''
@@ -93,37 +124,3 @@ class Processor():
                         self.instance))
             except Exception as e:
                 self.logger.error("Can't parse userinfo, error: " + str(e))
-
-    def process(self):
-        # Go through every single id under the cache folder
-        for ids in self.cache_accessor.idqueue():
-            try:
-                update_userinfo = ''
-                update_friends = ''
-                update_tweets = ''
-
-                nid = ids[0]
-                dirpath = ids[1]
-                files = os.listdir(dirpath)
-
-                for filename in files:
-                    filepath = os.path.join(dirpath, filename)
-                    if filename.startswith('userinfo.json.data'):
-                        self.store_userinfo(nid, filepath)
-                        update_userinfo = self.instance
-                    if filename.startswith('friends.json.data'):
-                        self.store_friends(nid, filepath)
-                        update_friends = self.instance
-                    if filename.startswith('tweets.json.data'):
-                        self.store_tweets(nid, filepath)
-                        update_tweets = self.instance
-                self.db.insert('users_update', (
-                    nid,
-                    update_userinfo,
-                    update_tweets,
-                    update_friends))
-            except Exception as e:
-                self.logger.error('Error during processing user %s : %s' %
-                        (nid, e))
-        self.db.__del__()
-        self.logger.debug('processing complete')
