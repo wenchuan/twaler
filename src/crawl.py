@@ -84,20 +84,21 @@ class _CrawlerWorker(threading.Thread):
                 if response.code == 200:
                     gzipped = headers.getheader('content-encoding')
                     return (response.read(), gzipped)
-                quota = int(headers.getheader('x-ratelimit-remaining'))
-                if quota == 0:
+                else:
+                    self.logger.error('HTTP code %s on attempt _%s_ %s' %
+                            (response.code, attempt, url))
+            except urllib2.HTTPError as e:
+                if e.code == 400:
                     self.logger.info("400, request quota: %d. Sleeping "
                                 "10 more minutes and checking again" % quota)
                     time.sleep(10 * 60)
-                if quota < 50:
-                    self.logger.info("API quota running low: %s" % quota)
-            except urllib2.HTTPError as e:
-                self.logger.error("HTTPError while fetching %s %s: %s" %
-                        (url, e.code, e))
-                time.sleep(10)
+                else:
+                    self.logger.error("HTTPError on attempt _%s_ %s %s" %
+                            (attempt, url, e))
+                    time.sleep(10)
             except urllib2.URLError as e:
-                self.logger.error("URLError while fetching %s %s: %s" %
-                        (url, e.reason, e))
+                self.logger.error("URLError on attempt _%s_ %s %s: %s" %
+                        (attempt, url, e.reason, e))
                 time.sleep(10)
         return (None, None)
 

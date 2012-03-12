@@ -149,10 +149,12 @@ class Twaler:
         processor = process_crawl.Processor(self.config, self.logger,
                 timestamp, cache_dir)
         processor.process_loop()
+        self.logger.info("Processing instance %s COMPLETE" % timestamp)
         # LOAD
         self.logger.info("Loading instance " + timestamp)
         loader = load_crawl.Loader(self.config, self.logger)
         loader.load(processed_dir)
+        self.logger.info("Loading instance %s COMPLETE" % timestamp)
 
 
 if __name__ == '__main__':
