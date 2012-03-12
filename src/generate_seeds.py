@@ -1,7 +1,6 @@
 #!/usr/bin/python2.6
 
 import os
-import sys
 
 import misc
 from misc import write_to_files
@@ -23,7 +22,7 @@ class Generator():
 
     def generate(self):
         self.generate_newSeeds()
-        self.generate_updates()
+        # self.generate_updates()
 
     def generate_newSeeds(self):
         try:

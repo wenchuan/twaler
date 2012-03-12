@@ -1,14 +1,10 @@
 #!/usr/bin/python2.6
 from __future__ import with_statement
 import os
-import sys
 import time
 import urllib2
-import base64
-import socket
 import threading
 import Queue
-import signal
 import json
 
 import misc
@@ -23,7 +19,7 @@ class Crawler:
         self.logger = logger
         self.idqueue = Queue.Queue(0)
 
-    def crawlloop(self, seed_file, cache_dir):
+    def crawl(self, seed_file, cache_dir):
         seed_file = seed_file
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
@@ -58,7 +54,7 @@ class Crawler:
 
 
 class _CrawlerWorker(threading.Thread):
-    """ _CrawlerWorker represens a worker that crawl and save info"""
+    """ _CrawlerWorker represents a worker that crawl and save info"""
     CRAWL_USERINFO = 'u'
     CRAWL_TWEETS = 't'
     CRAWL_FRIENDS = 'f'

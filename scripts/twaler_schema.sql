@@ -55,12 +55,7 @@ CREATE TABLE users_update (
 	user_id BIGINT UNSIGNED PRIMARY KEY,
 	info_updated TIMESTAMP DEFAULT 0,
 	tweet_updated TIMESTAMP DEFAULT 0,
-	friend_updated TIMESTAMP DEFAULT 0,
-	last_tweet_cursor BIGINT UNSIGNED
-);
-
-CREATE TABLE crawl_instances (
-	date TIMESTAMP
+	friend_updated TIMESTAMP DEFAULT 0
 );
 
 -- Snorg Account creation

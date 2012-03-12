@@ -53,6 +53,9 @@ class Twaler:
         if not os.path.exists(dir_cache):
             os.makedirs(dir_cache)
 
+        self.crawler = crawl.Crawler(self.config, self.logger)
+        self.generator = generate_seeds.Generator(self.config, self.logger)
+
     def twale(self):
         self.logger.debug('twaler started')
         self.child = os.fork()              # create a child process
@@ -109,15 +112,11 @@ class Twaler:
                 import pdb; pdb.set_trace()
                 #
                 #________________________________
-                self.generateseeds()
+                self.generator.generate()
                 self.logger.debug('Generate seeds complete')
                 seeds = os.listdir(self.config['dir_seeds'])
-            for seed in seeds:          # N.B. seed is a filename with seeds
+            for seed in seeds:  # N.B. seed is a filename with seeds
                 self.crawl(seed)
-
-    def generateseeds(self):
-        generator = generate_seeds.Generator(self.config, self.logger)
-        generator.generate()
 
     def crawl(self, seed):
         '''Read seed file, download, process and load to database
@@ -127,11 +126,23 @@ class Twaler:
 
         cache_dir = os.path.join(self.config['dir_cache'], timestamp)
         seedfile = os.path.join(self.config['dir_seeds'], seed)
+        processed_dir = os.path.join(cache_dir, "processed_crawl")
 
-        # crawl seedfile and save files into cache_dir
-        crawler = crawl.Crawler(self.config, self.logger)
-        crawler.crawlloop(seedfile, cache_dir)
-        self.processAndLoad(timestamp)
+        # Crawl
+        self.crawler.crawl(seedfile, cache_dir)
+
+        # Process
+        self.logger.info("Processing instance " + timestamp)
+        processor = process_crawl.Processor(self.config, self.logger,
+                timestamp, cache_dir)
+        processor.process()
+        self.logger.info("Processing instance %s COMPLETE" % timestamp)
+
+        # Load
+        self.logger.info("Loading instance " + timestamp)
+        loader = load_crawl.Loader(self.config, self.logger)
+        loader.load(processed_dir)
+        self.logger.info("Loading instance %s COMPLETE" % timestamp)
 
         # Move seedfile out of seed directory
         cachepath = os.path.join(self.config['dir_cache'], timestamp,
@@ -139,22 +150,6 @@ class Twaler:
         seeddonepath = os.path.join(self.config['dir_seedsdone'], seed)
         shutil.copy(seedfile, cachepath)
         shutil.move(seedfile, seeddonepath)
-
-    def processAndLoad(self, timestamp):
-        # A folder under cache will be created with the timestamp
-        cache_dir = os.path.join(self.config['dir_cache'], timestamp)
-        processed_dir = os.path.join(cache_dir, "processed_crawl")
-        # PROCESS
-        self.logger.info("Processing instance " + timestamp)
-        processor = process_crawl.Processor(self.config, self.logger,
-                timestamp, cache_dir)
-        processor.process_loop()
-        self.logger.info("Processing instance %s COMPLETE" % timestamp)
-        # LOAD
-        self.logger.info("Loading instance " + timestamp)
-        loader = load_crawl.Loader(self.config, self.logger)
-        loader.load(processed_dir)
-        self.logger.info("Loading instance %s COMPLETE" % timestamp)
 
 
 if __name__ == '__main__':

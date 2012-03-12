@@ -53,20 +53,19 @@ class Loader():
         for filename in files:
             filepath = os.path.join(dir_data, filename)
             if (filename == 'users.tsv'):
-                self.dump("users",filepath)
+                self.dump("users", filepath)
             if (filename == 'tweets.tsv'):
-                self.dump("tweets",filepath)
+                self.dump("tweets", filepath)
             if (filename == 'mentions.tsv'):
-                self.dump("mentions",filepath)
+                self.dump("mentions", filepath)
             if (filename == 'urls.tsv'):
-                self.dump("urls",filepath)
+                self.dump("urls", filepath)
             if (filename == 'hashes.tsv'):
-                self.dump("hashes",filepath)
-            if (filename == 'crawl_instances.tsv'):
-                self.dump("crawl_instances",filepath)
+                self.dump("hashes", filepath)
             if (filename == 'hashtags.tsv'):
-                self.dump("hashtags",filepath)
+                self.dump("hashtags", filepath)
             if (filename == 'friends.tsv'):
-                self.dump_and_update("friends",filepath,["date_last"])
+                self.dump_and_update("friends", filepath, ["date_last"])
             if (filename == 'users_update.tsv'):
-                self.dump_and_update("users_update",filepath,["info_updated","tweet_updated","friend_updated","membership_updated","last_tweet_cursor"])
+                self.dump_and_update("users_update", filepath, [
+                    "info_updated", "tweet_updated", "friend_updated"])

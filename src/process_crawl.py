@@ -94,12 +94,12 @@ class Processor():
             except Exception as e:
                 self.logger.error("Can't parse userinfo, error: " + str(e))
 
-    def process_loop(self):
-        self.db.insert('crawl_instances', (self.instance,))
+    def process(self):
         # Go through every single id under the cache folder
         for ids in self.cache_accessor.idqueue():
             try:
                 update_userinfo = ''
+                update_friends = ''
                 update_tweets = ''
 
                 nid = ids[0]
@@ -110,10 +110,18 @@ class Processor():
                     filepath = os.path.join(dirpath, filename)
                     if filename.startswith('userinfo.json.data'):
                         self.store_userinfo(nid, filepath)
+                        update_userinfo = self.instance
                     if filename.startswith('friends.json.data'):
                         self.store_friends(nid, filepath)
+                        update_friends = self.instance
                     if filename.startswith('tweets.json.data'):
                         self.store_tweets(nid, filepath)
+                        update_tweets = self.instance
+                self.db.insert('users_update', (
+                    nid,
+                    update_userinfo,
+                    update_tweets,
+                    update_friends))
             except Exception as e:
                 self.logger.error('Error during processing user %s : %s' %
                         (nid, e))
