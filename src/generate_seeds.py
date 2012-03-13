@@ -1,9 +1,10 @@
 #!/usr/bin/python2.6
 
 import os
+import json
+import logging
 
 import misc
-from misc import write_to_files
 
 class Generator():
     def __init__(self, config, logger):
@@ -21,10 +22,6 @@ class Generator():
             self.logger.error(str(e))
 
     def generate(self):
-        self.generate_newSeeds()
-        # self.generate_updates()
-
-    def generate_newSeeds(self):
         try:
             # TODO improve our naive seed generation method
             #---------------------------------
@@ -42,24 +39,33 @@ class Generator():
             # fetch results and write to new seed file
             results = self.db.cursor.fetchall()
             timestamp = misc.timefunctions.datestamp()
-            write_to_files(results, 'seeds_' + timestamp,
+            misc.write_to_files(results, 'seeds_' + timestamp,
                            self.config['seed_per_file'], seedType)
         except Exception as e:
             self.logger.error(str(e))
 
-    def generate_updates(self):
-        try:
-            stmt = ("SELECT user_id FROM users_update Order by info_updated "
-                    "desc limit %s" % self.config['seed_limit'])
-            self.db.execute(stmt)
-            self.logger.debug("MySQL generate_users Query Complete")
-            seedType = 'utf'
 
-            #---------------------------------
-            # fetch results and write to new seed file
-            results = self.db.cursor.fetchall()
-            timestamp = misc.timefunctions.datestamp()
-            write_to_files(results, 'update_' + timestamp,
-                           self.config['seed_per_file'], seedType)
-        except Exception as e:
-            self.logger.error(str(e))
+def main():
+    # Load global configurations
+    fp = open('config.json')
+    config = json.load(fp)
+    fp.close()
+
+    # Setup logger
+    formatter = logging.Formatter(
+            '%(asctime)-6s: %(funcName)s(%(filename)s:%(lineno)d) - '
+            '%(levelname)s - %(message)s')
+    consoleLogger = logging.StreamHandler()
+    consoleLogger.setLevel(logging.DEBUG)
+    consoleLogger.setFormatter(formatter)
+    logging.getLogger('').addHandler(consoleLogger)
+    logger = logging.getLogger('')
+    logger.setLevel(logging.DEBUG)
+
+    # Generate seeds
+    generator = Generator(config, logger)
+    generator.generate()
+
+
+if __name__ == "__main__":
+    main()

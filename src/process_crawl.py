@@ -4,12 +4,10 @@ import os
 import sys
 import gzip
 import json
+import logging
 from contextlib import closing
 
-from misc import timefunctions
-from misc import CacheAccessor
-from misc import mysql_db
-from misc import file_db
+import misc
 
 class Processor():
     def __init__(self, config, logger):
@@ -17,12 +15,12 @@ class Processor():
         self.logger = logger
 
     def process(self, instance, cache_dir):
-        self.instance = timefunctions.instanceToSqlTime(instance)
-        self.cache_accessor = CacheAccessor(cache_dir, self.logger)
+        self.instance = misc.timefunctions.instanceToSqlTime(instance)
+        self.cache_accessor = misc.CacheAccessor(cache_dir, self.logger)
         dir_processed = os.path.join(cache_dir, 'processed_crawl')
         if not os.path.exists(dir_processed):
             os.makedirs(dir_processed)
-        self.db = file_db(dir_processed, self.logger)
+        self.db = misc.file_db(dir_processed, self.logger)
         # Go through every single id under the cache folder
         for ids in self.cache_accessor.idqueue():
             try:
@@ -76,7 +74,7 @@ class Processor():
                     data['followers_count'],
                     data['friends_count'],
                     data['statuses_count'],
-                    timefunctions.jsonToSqlTime(data['created_at'])))
+                    misc.timefunctions.jsonToSqlTime(data['created_at'])))
             except Exception as e:
                 self.logger.error("Can't parse userinfo, error: " + str(e))
 
@@ -92,7 +90,7 @@ class Processor():
                         tid,
                         nid,
                         t['retweet_count'],
-                        timefunctions.jsonToSqlTime(t['created_at']),
+                        misc.timefunctions.jsonToSqlTime(t['created_at']),
                         t['text']))
                     for h in t['entities']['hashtags']:
                         self.db.insert('hashtags', (
@@ -124,3 +122,37 @@ class Processor():
                         self.instance))
             except Exception as e:
                 self.logger.error("Can't parse userinfo, error: " + str(e))
+
+
+def main():
+    # Get cache path from parameter
+    if len(sys.argv) < 2:
+        print('Usage:%s cache/2012.03.10.10.10.10' % sys.argv[0])
+        sys.exit(0)
+    if not os.path.exists(sys.argv[1]):
+        print('Usage:%s cache/2012.03.10.10.10.10' % sys.argv[0])
+        sys.exit(0)
+    cache_dir = sys.argv[1]
+
+    # Load global configurations
+    fp = open('config.json')
+    config = json.load(fp)
+    fp.close()
+
+    # Setup logger
+    formatter = logging.Formatter(
+            '%(asctime)-6s: %(funcName)s(%(filename)s:%(lineno)d) - '
+            '%(levelname)s - %(message)s')
+    consoleLogger = logging.StreamHandler()
+    consoleLogger.setLevel(logging.DEBUG)
+    consoleLogger.setFormatter(formatter)
+    logging.getLogger('').addHandler(consoleLogger)
+    logger = logging.getLogger('')
+    logger.setLevel(logging.DEBUG)
+
+    # Instantiate a processor
+    processor = Processor(config, logger)
+    processor.process(misc.timefunctions.datestamp(), cache_dir)
+
+if __name__ == "__main__":
+    main()

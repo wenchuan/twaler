@@ -6,6 +6,7 @@ import urllib2
 import threading
 import Queue
 import json
+import logging
 
 import misc
 
@@ -196,3 +197,37 @@ class _CrawlerWorker(threading.Thread):
                 self.idqueue.task_done()
                 break
         self.logger.debug("terminate signal received, closing thread")
+
+
+def main():
+    # Load global configurations
+    fp = open('config.json')
+    config = json.load(fp)
+    fp.close()
+
+    # Setup logger
+    formatter = logging.Formatter(
+            '%(asctime)-6s: %(funcName)s(%(filename)s:%(lineno)d) - '
+            '%(levelname)s - %(message)s')
+    consoleLogger = logging.StreamHandler()
+    consoleLogger.setLevel(logging.DEBUG)
+    consoleLogger.setFormatter(formatter)
+    logging.getLogger('').addHandler(consoleLogger)
+    logger = logging.getLogger('')
+    logger.setLevel(logging.DEBUG)
+
+    # Instantiate a crawler
+    crawler = Crawler(config, logger)
+
+    # crawl all the seeds under directory
+    seeds = os.listdir(config['dir_seeds'])
+    for seed in seeds:
+        timestamp = misc.timefunctions.datestamp()
+        logger.info('Crawling file %s as %s' % (seed, timestamp))
+        cache_dir = os.path.join(config['dir_cache'], timestamp)
+        seedfile = os.path.join(config['dir_seeds'], seed)
+        crawler.crawl(seedfile, cache_dir)
+
+
+if __name__ == "__main__":
+    main()
