@@ -1,5 +1,8 @@
 #!/usr/bin/python2.6
 import os
+import sys
+import json
+import logging
 
 class Loader():
     def __init__(self, config, logger):
@@ -69,3 +72,37 @@ class Loader():
             if (filename == 'users_update.tsv'):
                 self.dump_and_update("users_update", filepath, [
                     "info_updated", "tweet_updated", "friend_updated"])
+
+
+def main():
+    # Get cache path from parameter
+    if len(sys.argv) < 2:
+        print('Usage:%s cache/2012.03.10.10.10.10' % sys.argv[0])
+        sys.exit(0)
+    if not os.path.exists(sys.argv[1]):
+        print('Usage:%s cache/2012.03.10.10.10.10' % sys.argv[0])
+        sys.exit(0)
+
+    # Load global configurations
+    fp = open('config.json')
+    config = json.load(fp)
+    fp.close()
+
+    # Setup logger
+    formatter = logging.Formatter(
+            '%(asctime)-6s: %(funcName)s(%(filename)s:%(lineno)d) - '
+            '%(levelname)s - %(message)s')
+    consoleLogger = logging.StreamHandler()
+    consoleLogger.setLevel(logging.DEBUG)
+    consoleLogger.setFormatter(formatter)
+    logging.getLogger('').addHandler(consoleLogger)
+    logger = logging.getLogger('')
+    logger.setLevel(logging.DEBUG)
+
+    # Load processed tsvs into mysql database
+    loader = Loader(config, logger)
+    loader.load(sys.argv[1])
+
+
+if __name__ == "__main__":
+    main()
