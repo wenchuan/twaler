@@ -7,10 +7,10 @@ import json
 import logging
 import logging.handlers
 
-import crawl
-import process_crawl
-import load_crawl
-import generate_seeds
+import crawler
+import processor
+import loader
+import generator
 import misc
 
 class Twaler:
@@ -53,10 +53,10 @@ class Twaler:
         if not os.path.exists(dir_cache):
             os.makedirs(dir_cache)
 
-        self.generator = generate_seeds.Generator(self.config, self.logger)
-        self.crawler = crawl.Crawler(self.config, self.logger)
-        self.processor = process_crawl.Processor(self.config, self.logger)
-        self.loader = load_crawl.Loader(self.config, self.logger)
+        self.generator = generator.Generator(self.config, self.logger)
+        self.crawler = crawler.Crawler(self.config, self.logger)
+        self.processor = processor.Processor(self.config, self.logger)
+        self.loader = loader.Loader(self.config, self.logger)
 
     def twale(self):
         self.logger.debug('twaler started')
@@ -109,11 +109,6 @@ class Twaler:
             # Generate more if needed
             if not seeds:
                 self.logger.debug("Seed folder empty")
-                #________________________________
-                #
-                import pdb; pdb.set_trace()
-                #
-                #________________________________
                 self.generator.generate()
                 self.logger.debug('Generate seeds complete')
                 seeds = os.listdir(self.config['dir_seeds'])
