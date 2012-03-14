@@ -45,7 +45,7 @@ class Crawler:
                     break
                 self.idqueue.put(seed)  # put seeds on queue
             self.idqueue.join()         # block until all seeds are processed
-            self.logger.info("File " + seed_file + " completed")
+            self.logger.info("Crawling file %s COMPLETE" % seed_file)
             seedFileStream.close()
         except Exception as e:
             traceback.print_stack()
