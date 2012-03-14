@@ -153,13 +153,13 @@ class mysql_db():
                 stmt = stmt[:-1]
             self.cursor.execute(stmt, values)
         except Exception as e:
-            self.logger.error("MySQL Insert/Update Error:"+ str(e)  + "\n(stmt):" + stmt)
+            self.logger.error("MySQL insert error: %s\nSTMT: %s" % (e, stmt))
 
     def execute(self, stmt):
         try:
             self.cursor.execute(stmt)
         except Exception as e:
-            self.logger.error("MySQL Execute Error:" + str(e) + "\n(stmt):" + stmt)
+            self.logger.error("MySQL execute error: %s\nSTMT: %s" % (e, stmt))
 
     def __del__(self):
         self.conn.close()
