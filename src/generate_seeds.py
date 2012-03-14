@@ -3,6 +3,7 @@
 import os
 import json
 import logging
+import traceback
 
 import misc
 
@@ -19,6 +20,7 @@ class Generator():
                     self.config['db_password'],
                     self.config['db_database'], self.logger)
         except Exception as e:
+            traceback.print_stack()
             self.logger.error(str(e))
 
     def generate(self):
@@ -42,6 +44,7 @@ class Generator():
             misc.write_to_files(results, 'seeds_' + timestamp,
                            self.config['seed_per_file'], seedType)
         except Exception as e:
+            traceback.print_stack()
             self.logger.error(str(e))
 
 

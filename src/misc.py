@@ -91,7 +91,8 @@ class CacheAccessor():
         #we're too fast, we need more differentiation
         self.pseudoseconds = (self.pseudoseconds + 1) % 100
         now = timefunctions.datestamp() + (".%03d" % self.pseudoseconds)
-        cache_file = os.path.join(cache_path, request_type + ".%s." + now + ".gz")
+        cache_file = os.path.join(cache_path,
+                request_type + ".%s." + now + ".gz")
         #write data
         #data is already gzipped:
         if datagzipped:

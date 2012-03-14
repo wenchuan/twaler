@@ -105,7 +105,7 @@ class Processor():
                             tid,
                             m['id']))
             except Exception as e:
-                self.logger.error("Can't parse userinfo, error: " + str(e))
+                self.logger.error("Can't parse tweets, error: " + str(e))
 
     def store_friends(self, nid, filename):
         self.logger.debug('processing ' + filename)
@@ -121,7 +121,8 @@ class Processor():
                         self.instance,
                         self.instance))
             except Exception as e:
-                self.logger.error("Can't parse userinfo, error: " + str(e))
+                self.logger.error(
+                        "Can't process friends info, error: " + str(e))
 
 
 def main():

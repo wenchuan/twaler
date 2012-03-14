@@ -7,6 +7,7 @@ import threading
 import Queue
 import json
 import logging
+import traceback
 
 import misc
 
@@ -47,6 +48,7 @@ class Crawler:
             self.logger.info("File " + seed_file + " completed")
             seedFileStream.close()
         except Exception as e:
+            traceback.print_stack()
             self.logger.error(str(e))
         for th in workers:         # send terminating signals to workers
             self.idqueue.put(_CrawlerWorker.TERMINATE_SIGNAL)
@@ -84,20 +86,24 @@ class _CrawlerWorker(threading.Thread):
                     gzipped = headers.getheader('content-encoding')
                     return (response.read(), gzipped)
                 else:
-                    self.logger.error('HTTP code %s on attempt _%s_ %s' %
+                    self.logger.debug('HTTP code %s on attempt _%s_ %s' %
                             (response.code, attempt, url))
             except urllib2.HTTPError as e:
                 if e.code == 400:
                     self.logger.info("400, API limit reached, sleep 10 mins")
                     time.sleep(10 * 60)
+                elif e.code == 401:
+                    # User doesn't allow public access
+                    return (None, None)
                 else:
-                    self.logger.error("HTTPError on attempt _%s_ %s %s" %
+                    self.logger.debug("HTTPError on attempt _%s_ %s %s" %
                             (attempt, url, e))
                     time.sleep(self.config['crawl_retry_gap'])
             except urllib2.URLError as e:
-                self.logger.error("URLError on attempt _%s_ %s %s: %s" %
+                self.logger.debug("URLError on attempt _%s_ %s %s: %s" %
                         (attempt, url, e.reason, e))
                 time.sleep(self.config['crawl_retry_gap'])
+        self.logger.error('HTTP fetching failure for %s' % url)
         return (None, None)
 
     def getrequestquota(self):
@@ -114,12 +120,15 @@ class _CrawlerWorker(threading.Thread):
                 self.logger.warning("rate limit status request returned: "
                         "%d %s" % (page.code, page.msg));
             # Request caused an exception
-            except Exception as e:
-                self.logger.error("rate limit request failed. error %s"
-                        % str(e))
-            self.logger.info("rate limit request failed")
+            except urllib2.HTTPError as e:
+                self.logger.debug("HTTPError checking rate limit :%s" % e)
+                        
+            except urllib2.URLError as e:
+                self.logger.debug("URLError checking rate limit %s: %s" %
+                        (e.reason, e))
             time.sleep(10)
         # no response for 5 times, return zero
+        self.logger.warning("rate limit request failed")
         return 0
 
     def cache(self, request_type, uid, data, datagzipped=False):
@@ -193,6 +202,7 @@ class _CrawlerWorker(threading.Thread):
                 self.fetch(seed)
                 self.idqueue.task_done()
             except Exception as e:
+                traceback.print_stack()
                 self.logger.error(str(e))
                 self.idqueue.task_done()
                 break
