@@ -108,9 +108,9 @@ class Twaler:
             seeds = os.listdir(self.config['dir_seeds'])
             # Generate more if needed
             if not seeds:
-                self.logger.debug("Seed folder empty")
+                self.logger.info("Start to generate new seeds")
                 self.generator.generate()
-                self.logger.debug('Generate seeds complete')
+                self.logger.info('Generate seeds complete')
                 seeds = os.listdir(self.config['dir_seeds'])
             for seed in seeds:  # N.B. seed is a filename with seeds
                 self.crawl(seed)
