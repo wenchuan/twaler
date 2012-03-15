@@ -9,7 +9,8 @@ CREATE TABLE users (
 	followers_count BIGINT UNSIGNED DEFAULT NULL,
 	friends_count INTEGER UNSIGNED DEFAULT NULL,
 	status_count INTEGER UNSIGNED DEFAULT NULL,
-	created_at TIMESTAMP DEFAULT 0
+	created_at TIMESTAMP DEFAULT 0,
+  INDEX (user_id)
 );
 
 CREATE TABLE target_users (
@@ -29,7 +30,8 @@ CREATE TABLE friends (
 	friend_id BIGINT UNSIGNED,
 	date_added TIMESTAMP DEFAULT 0,
 	date_last TIMESTAMP DEFAULT 0,
-	UNIQUE (user_id, friend_id)
+	UNIQUE (user_id, friend_id),
+  INDEX (friend_id)
 );
 
 CREATE TABLE mentions (
@@ -55,7 +57,8 @@ CREATE TABLE users_update (
 	user_id BIGINT UNSIGNED PRIMARY KEY,
 	info_updated TIMESTAMP DEFAULT 0,
 	tweet_updated TIMESTAMP DEFAULT 0,
-	friend_updated TIMESTAMP DEFAULT 0
+	friend_updated TIMESTAMP DEFAULT 0,
+  INDEX (user_id)
 );
 
 -- Snorg Account creation
