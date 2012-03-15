@@ -164,6 +164,8 @@ class _CrawlerWorker(threading.Thread):
         self.logger.debug("start fetching userinfo for uid:%s " % uid)
         url = "http://api.twitter.com/1/users/show.json?user_id=" + uid
         (page, gzipped) = self.gethttpresponse(url)
+        if not page:
+            return
         self.cache("userinfo.json", uid, page, gzipped)
         self.logger.debug("fetched userinfo for uid:%s " % uid)
 
@@ -177,6 +179,8 @@ class _CrawlerWorker(threading.Thread):
             url = ("http://api.twitter.com/1/friends/ids.json?"
                    "user_id=%s&cursor=%s" % (uid, next_cursor))
             (page, gzipped) = self.gethttpresponse(url)
+            if not page:
+                return
             data = json.loads(page.decode())
             next_cursor = data['next_cursor']
             self.cache('friends.json', uid, page, gzipped)
@@ -187,6 +191,8 @@ class _CrawlerWorker(threading.Thread):
         url = ("http://api.twitter.com/1/statuses/user_timeline.json?"
                 "include_entities=t&trim_user=t&user_id=%s&count=200" % uid)
         (page, gzipped) = self.gethttpresponse(url, True)
+        if not page:
+            return
         self.cache("tweets.json", uid, page, gzipped)
         self.logger.debug("fetched tweets for uid:%s" % uid)
 
