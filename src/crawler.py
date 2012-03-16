@@ -95,6 +95,9 @@ class _CrawlerWorker(threading.Thread):
                 elif e.code == 401:
                     # User doesn't allow public access
                     return (None, None)
+                elif e.code == 404:
+                    # User doesn't exist anymore
+                    return (None, None)
                 else:
                     self.logger.debug("HTTPError on attempt _%s_ %s %s" %
                             (attempt, url, e))
